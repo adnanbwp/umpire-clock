@@ -58,7 +58,15 @@ test('example 2: Kelly one-day, 21 minutes lost → 32 overs', () => {
 test('example 6: 125 minutes lost → compulsory closure at 25', () => {
   const out = oneDayReduction(getRow(CURRENT_SEASON, 'oneday', 'jika'), 125);
   assert.equal(out.compulsoryAt, 25);
-  assert.equal(out.overs, 40 - 17);
+  assert.equal(out.overs, 25);   // the reduction floors at the no-game overs
+});
+
+test('A1: the reduction never falls below the no-game overs', () => {
+  const j = getRow(CURRENT_SEASON, 'oneday', 'jika');
+  const out = oneDayReduction(j, 200);
+  assert.equal(out.overs, 25);
+  assert.equal(out.compulsoryAt, 25);
+  assert.equal(oneDayReduction(getRow(CURRENT_SEASON, 'oneday', 'quick'), 200).overs, 20);
 });
 
 test('example 15: handbook reckoner rows, 40 and 35 overs', () => {
@@ -362,4 +370,67 @@ test('replay: stumps report', () => {
   const d = replay(ev, 1051);
   assert.equal(d.phase, 'stumps');
   assert.equal(d.stumpsReport.short, 2);
+});
+
+test('A2: the two-day quota is fixed at the last completed resumption', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 },
+    { type: 'RESUME', t: 840 }, { type: 'STOP', t: 900, reason: 'weather', oversBowled: 25, balls: 0 }];
+  assert.equal(replay(ev, 905).quota.quota, 65);   // the open stoppage does not recalculate anything
+  ev.push({ type: 'RESUME', t: 960 });
+  // lost today 110 → extension capped at 30 → stumps 5.30; remaining 1050 − 960 − 20 tea = 70 → 20 overs
+  assert.equal(replay(ev, 965).quota.quota, 45);
+});
+
+test('A3: stumps during a stoppage → no over-rate shortfall', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'BREAK_START', t: 875, kind: 'tea' }, { type: 'BREAK_END', t: 895 },
+    { type: 'STOP', t: 900, reason: 'weather', oversBowled: 38, balls: 0 }, { type: 'STUMPS', t: 1020, oversBowled: 45, allowanceMin: 0 }];
+  const d = replay(ev, 1025);
+  assert.equal(d.quota.quota, 70);
+  assert.equal(d.stumpsReport.short, 0);
+  assert.equal(d.stumpsReport.allowanceOvers, 0);
+  assert.equal(d.stumpsReport.cite, 'By-law 3.16.2.2.5');
+  assert.match(d.stumpsReport.note, /not in progress/);
+});
+
+test('A5: time remaining never goes negative', () => {
+  const q = twoDayQuota(getRow(CURRENT_SEASON, 'twoday', 'quick'), { lostToday: 60, resumeTime: 1100, oversBowledAtStop: 14, teaTaken: false });
+  assert.equal(q.remaining, 0);
+  assert.equal(q.quota, 14);
+});
+
+test('A6: only weather and light extend the second innings', () => {
+  const ev = r => [setup('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'INNINGS_END', t: 875, how: 'compulsory', oversBowled: 35, balls: 0, breakKind: 'innings' },
+    { type: 'BREAK_END', t: 895 }, { type: 'STOP', t: 940, reason: r, oversBowled: 12, balls: 0 }, { type: 'RESUME', t: 985 }];
+  const inj = replay(ev('injury'), 990);
+  assert.equal(inj.lost[2], 45);          // still lost time for the record
+  assert.equal(inj.finish, 1020);         // but no extension: 3.15.5.2 is "by bad weather"
+  assert.equal(replay(ev('weather'), 990).finish, 1050);
+  assert.equal(replay(ev('light'), 990).finish, 1050);
+});
+
+test('A7: "take tea now" is raised only during a stoppage', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }];
+  assert.ok(!replay(ev, 850).flags.some(f => f.cite === 'By-law 3.16.1.2'));
+  ev.push({ type: 'STOP', t: 848, reason: 'weather', oversBowled: 27, balls: 0 });
+  assert.ok(replay(ev, 850).flags.some(f => f.cite === 'By-law 3.16.1.2'));
+});
+
+test('A8: two-day entitlement on day one', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'INNINGS_END', t: 1000, how: 'allout', oversBowled: 61, balls: 2, breakKind: 'innings' }];
+  let d = replay(ev, 1005);
+  assert.equal(d.entitlementBalls, (70 + 9) * 6);
+  assert.equal(d.entitlementCite, 'By-law 3.16.6');
+  ev[2] = { ...ev[2], how: 'compulsory', oversBowled: 70, balls: 0 };
+  d = replay(ev, 1005);
+  assert.equal(d.entitlementBalls, 420);
+  assert.equal(d.entitlementCite, 'By-law 3.16.5');
+});
+
+test('A8: an innings ending on day two has no fixed entitlement', () => {
+  const ev = [setup('twoday', 'quick', { day: 2 }), { type: 'START', t: 750 },
+    { type: 'INNINGS_END', t: 1000, how: 'allout', oversBowled: 61, balls: 2, breakKind: 'innings' }];
+  const d = replay(ev, 1005);
+  assert.equal(d.entitlementBalls, null);
+  assert.equal(d.entitlementCite, 'By-law 3.16.5');
+  assert.match(d.entitlementNote, /carried into day two/);
 });

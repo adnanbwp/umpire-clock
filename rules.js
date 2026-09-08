@@ -9,9 +9,10 @@ export function fmtTime(m) {
 export const oversBalls = balls => `${Math.floor(balls / 6)}.${balls % 6}`;
 
 // 3.15.2.1 / 3.17.2.1: one over off for each full seven minutes lost (handbook table rounds down).
+// The reduction floors at the no-game overs (3.15.2.2/3.15.2.3): below that there is no match to shorten.
 // By-law 3.17 mirrors 3.15 for designated one-day matches.
 export function oneDayReduction(row, lostMin) {
-  const overs = Math.max(0, row.overs - Math.floor(lostMin / row.lostMinPerOver));
+  const overs = Math.max(row.noGame, row.overs - Math.floor(lostMin / row.lostMinPerOver));
   const compulsoryAt = lostMin > 120 ? row.noGame : null;
   const cite = compulsoryAt ? `By-law ${row.bylaw}.2.1, By-law ${row.bylaw}.2.2` : `By-law ${row.bylaw}.2.1`;
   return { overs, compulsoryAt, cite };
@@ -64,7 +65,7 @@ export function twoDayQuota(row, { lostToday, resumeTime, oversBowledAtStop, tea
   if (lostToday <= row.extension)
     return { extendedStumps, quota: row.overs, remaining: null, teaDeduction: 0, cite: 'By-law 3.16.2.2.1, By-law 3.16.2.2.6' };
   const teaDeduction = teaTaken ? 0 : row.teaLen;
-  const remaining = extendedStumps - resumeTime - teaDeduction;
+  const remaining = Math.max(0, extendedStumps - resumeTime - teaDeduction);
   const quota = Math.min(row.overs, oversBowledAtStop + Math.round(remaining / row.lostMinPerOver));
   return { extendedStumps, quota, remaining, teaDeduction, cite: 'By-law 3.16.2.2.1, By-law 3.16.2.2.2, By-law 3.16.2.2.3, Handbook S1 §3, Interpretation' };
 }
@@ -113,6 +114,9 @@ function applyEvent(s, e) {
     seg.to = e.t;
     const lost = e.t - seg.from;
     s.lostByInnings[s.innings] = (s.lostByInnings[s.innings] || 0) + lost;
+    // 3.15.5.2 extends the second innings for time lost "by bad weather" only.
+    if (seg.reason === 'weather' || seg.reason === 'light')
+      s.lostWeatherByInnings[s.innings] = (s.lostWeatherByInnings[s.innings] || 0) + lost;
     s.lostToday += lost;
     return seg;
   };
@@ -131,8 +135,10 @@ function applyEvent(s, e) {
       const oversAtStop = e.oversBowled ?? expectedOvers(s.row, playedMinutes(s.segments, s.format === 'twoday' ? null : s.innings, e.t));
       open('stop', { reason: e.reason, oversBowled: oversAtStop });
       s.phase = 'stoppage'; break;
-    case 'RESUME':
-      if (!settleStop()) break; open('play'); s.phase = 'play'; break;
+    case 'RESUME': {
+      const seg = settleStop(); if (!seg) break;
+      seg.resumed = true;          // only a resumption completes a stoppage: 3.16.2.2 recalculates from it
+      open('play'); s.phase = 'play'; break; }
     case 'INNINGS_END':
       settleStop(); close(); recordOvers();
       s.inningsEnds.push({ t: e.t, innings: s.innings, how: e.how, overs: e.oversBowled, balls: e.balls || 0 });
@@ -147,8 +153,10 @@ function applyEvent(s, e) {
       s.teaDeferredAt = e.t; break;
     case 'OVERS':
       recordOvers(); break;
-    case 'STUMPS':
-      settleStop(); close(); s.stumps = { t: e.t, oversBowled: e.oversBowled, allowanceMin: e.allowanceMin || 0 }; s.phase = 'stumps'; break;
+    case 'STUMPS': {
+      const pending = s.segments.at(-1);
+      if (pending && pending.kind === 'stop' && pending.to == null) s.stumpsDuringStop = true;
+      settleStop(); close(); s.stumps = { t: e.t, oversBowled: e.oversBowled, allowanceMin: e.allowanceMin || 0 }; s.phase = 'stumps'; break; }
     case 'ABANDON':
       settleStop(); close(); s.abandoned = true; s.abandonReason = e.reason || ''; s.phase = 'abandoned'; break;
     case 'NOTE':
@@ -159,7 +167,8 @@ function applyEvent(s, e) {
 export function replay(events, now) {
   const s = { phase: 'setup', format: null, grade: null, row: null, seasonId: null, day: 1, drinksInterval: 0,
     scheduledStart: null, innings: 0, firstBall: null, dayStart: null, segments: [], lostByInnings: { 1: 0, 2: 0 },
-    lostToday: 0, teaTaken: false, teaDeferredAt: null, oversEntries: [], inningsEnds: [], stumps: null, notes: [], abandoned: false };
+    lostWeatherByInnings: { 1: 0, 2: 0 }, lostToday: 0, teaTaken: false, teaDeferredAt: null, oversEntries: [], inningsEnds: [],
+    stumps: null, stumpsDuringStop: false, notes: [], abandoned: false };
   for (const e of events) applyEvent(s, e);
   if (!s.row) return { phase: 'setup', events };
   return derive(s, now);
@@ -191,14 +200,15 @@ function derive(s, now) {
     expected, currentOvers, behind, lost: s.lostByInnings, lostToday: s.lostToday, oversEntries: s.oversEntries,
     inningsEnds: s.inningsEnds, segments: s.segments, notes: s.notes, teaTaken: s.teaTaken, teaDeferredAt: s.teaDeferredAt,
     scheduledStart: s.scheduledStart, firstBall: s.firstBall, drinksInterval: s.drinksInterval, abandoned: s.abandoned,
-    mpo, revisedOvers: null, compulsoryAt: null, entitlementBalls: null, entitlementCite: null, finish: null, quota: null, tea: null, stumpsReport: null };
+    mpo, revisedOvers: null, compulsoryAt: null, entitlementBalls: null, entitlementCite: null, entitlementNote: null,
+    finish: null, quota: null, tea: null, stumpsReport: null };
 
   if (!twoDay) {
     const red = oneDayReduction(row, s.lostByInnings[1]);
     out.revisedOvers = red.overs; out.compulsoryAt = red.compulsoryAt;
     const inn1 = s.inningsEnds[0];
     if (inn1) { const e = entitlement(row, s.format, { how: inn1.how, oversBowled: inn1.overs, balls: inn1.balls, revisedOvers: red.overs }); out.entitlementBalls = e.balls; out.entitlementCite = e.cite; }
-    const fin = secondInningsFinish(row, s.lostByInnings[2] || 0); out.finish = fin.finish;
+    const fin = secondInningsFinish(row, s.lostWeatherByInnings[2] || 0); out.finish = fin.finish;
     if (s.phase === 'notstarted' && noStartAbandoned(row, now, false)) flags.push({ level: 'danger', text: `Not started by ${fmtTime(row.noStartBy)}: abandoned, match drawn`, cite: noStartCite });
     if (red.compulsoryAt) flags.push({ level: 'warn', text: `Over 120 min lost: side one is closed at ${red.compulsoryAt} overs`, cite: `By-law ${row.bylaw}.2.2` });
     if (s.innings === 1 && s.firstBall && s.phase !== 'abandoned') {
@@ -220,15 +230,23 @@ function derive(s, now) {
     if (s.innings === 2 && fin.finish !== row.stumps) push(fin.finish, fin.extended ? 'Extended finish (end of over in progress)' : 'Finish (extended by minutes lost)', 'finish', fin.cite);
     push(row.hardStop, 'Hard stop, no resumption after', 'cutoff', `By-law ${row.bylaw}.5.3`);
   } else {
-    const lastStop = [...s.segments].reverse().find(x => x.kind === 'stop');
+    const lastStop = [...s.segments].reverse().find(x => x.kind === 'stop' && x.resumed);
     const resumeTime = lastStop?.to ?? s.firstBall ?? s.scheduledStart;
     const teaBeforeResume = s.segments.some(x => x.kind === 'break' && x.breakKind === 'tea' && x.from <= resumeTime);
     const q = twoDayQuota(row, { lostToday: s.lostToday, resumeTime, oversBowledAtStop: lastStop?.oversBowled ?? 0, teaTaken: teaBeforeResume });
     out.quota = q;
     const tea = teaDecision(row, { t: now, teaTaken: s.teaTaken, dayStart: s.dayStart ?? s.scheduledStart }); out.tea = tea;
+    const inn1 = s.inningsEnds[0];
+    if (inn1 && s.day === 1) {
+      const e = entitlement(row, 'twoday', { how: inn1.how, oversBowled: inn1.overs, balls: inn1.balls, unusedOvers: Math.max(0, q.quota - inn1.overs) });
+      out.entitlementBalls = e.balls; out.entitlementCite = e.cite;
+    } else if (inn1) {
+      out.entitlementBalls = null; out.entitlementCite = 'By-law 3.16.5';
+      out.entitlementNote = 'Innings carried into day two: side two bats for the overs left in the day, not exceeding the day maximum';
+    }
     if (s.day === 1 && s.phase === 'notstarted' && now > row.day1NoStartBy) flags.push({ level: 'danger', text: `Not started by ${fmtTime(row.day1NoStartBy)}: a one-day match is played on day two; umpires receive half the daily fee`, cite: 'By-law 3.12.5', action: 'CONVERT' });
     if (s.phase === 'stoppage' && now >= row.stumps) flags.push({ level: 'danger', text: `Play not in progress at ${fmtTime(row.stumps)} because of weather: the day ends`, cite: 'By-law 3.16.2.2.5' });
-    if (tea.tea === 'now' && s.phase !== 'break') flags.push({ level: 'info', text: 'Within 30 min of scheduled tea: take tea now, no separate innings interval', cite: tea.cite });
+    if (tea.tea === 'now' && s.phase === 'stoppage') flags.push({ level: 'info', text: 'Within 30 min of scheduled tea: take tea now, no separate innings interval', cite: tea.cite });
     if (s.day === 1 && !s.firstBall) push(row.day1NoStartBy, 'No start → one-day on day two', 'cutoff', 'By-law 3.12.5');
     if (tea.tea === 'scheduled' || tea.tea === 'now') {
       if (s.teaDeferredAt != null) push(Math.min(s.teaDeferredAt, row.tea) + 30, 'Tea deferred, by', 'break', 'By-law 3.16.1.3');
@@ -241,7 +259,10 @@ function derive(s, now) {
   tt.sort((a, b) => a.t - b.t);
   out.timetable = tt; out.flags = flags;
   out.next = tt.find(x => x.t > now && x.kind !== 'info') ?? null;
-  if (s.stumps) {
+  if (s.stumps && s.stumpsDuringStop) {
+    out.stumpsReport = { allowanceOvers: 0, short: 0, cite: 'By-law 3.16.2.2.5',
+      note: 'Play not in progress at stumps because of the stoppage: no over-rate report' };
+  } else if (s.stumps) {
     const quota = twoDay ? out.quota.quota : (s.innings >= 2 && out.entitlementBalls != null ? Math.floor(out.entitlementBalls / 6) : out.revisedOvers);
     out.stumpsReport = overRate(row, { quota, oversBowled: s.stumps.oversBowled, allowanceMin: s.stumps.allowanceMin });
   }
