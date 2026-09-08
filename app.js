@@ -192,9 +192,18 @@ function renderLog(d) {
     <div class="card"><pre id="logtext">${esc(logText(events, d))}</pre></div>
     ${arc.length ? `<div class="card"><h2>Past matches</h2>${arc.map((a, i) => `<p>${new Date(a.savedAt).toLocaleString('en-AU')} · ${a.events.length} events <button data-arc="${i}">Show</button></p>`).join('')}</div>` : ''}`;
   $('#share').onclick = async () => {
-    const text = $('#logtext').textContent;
-    if (navigator.share) { try { await navigator.share({ title: 'Umpire Clock log', text }); } catch {} }
-    else { await navigator.clipboard.writeText(text); $('#share').textContent = 'Copied'; }
+    const text = $('#logtext').textContent, btn = $('#share');
+    const flash = label => { btn.textContent = label; setTimeout(() => { btn.textContent = 'Share'; }, 2000); };
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Umpire Clock log', text }); return; }
+      catch (err) { if (err?.name === 'AbortError') return; }   // user cancelled; anything else falls through
+    }
+    if (navigator.clipboard?.writeText) {
+      try { await navigator.clipboard.writeText(text); flash('Copied'); return; } catch {}
+    }
+    const range = document.createRange(); range.selectNodeContents($('#logtext'));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    flash('Select and copy');
   };
   $('#note').onclick = () => openPanel('Note', `${timeField()}<label>Text<input name="text" required></label>`, f => dispatch({ type: 'NOTE', t: fromHHMM(f.t), text: f.text }));
   for (const b of document.querySelectorAll('[data-arc]')) b.onclick = () => {
