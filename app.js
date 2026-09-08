@@ -179,7 +179,8 @@ document.addEventListener('click', ev => {
   const a = ev.target.closest('[data-action]'); if (a) { actions[a.dataset.action](replay(events, nowMin())); return; }
   const v = ev.target.closest('#nav button'); if (v) { view = v.dataset.view; render(); }
 });
-setInterval(render, 30000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+const tick = () => { if (view === 'status' && !$('#panel').open) render(); };
+setInterval(tick, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 render();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});

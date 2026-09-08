@@ -221,7 +221,9 @@ function derive(s, now) {
     push(row.hardStop, 'Hard stop, no resumption after', 'cutoff', `By-law ${row.bylaw}.5.3`);
   } else {
     const lastStop = [...s.segments].reverse().find(x => x.kind === 'stop');
-    const q = twoDayQuota(row, { lostToday: s.lostToday, resumeTime: lastStop?.to ?? s.firstBall ?? s.scheduledStart, oversBowledAtStop: lastStop?.oversBowled ?? 0, teaTaken: s.teaTaken });
+    const resumeTime = lastStop?.to ?? s.firstBall ?? s.scheduledStart;
+    const teaBeforeResume = s.segments.some(x => x.kind === 'break' && x.breakKind === 'tea' && x.from <= resumeTime);
+    const q = twoDayQuota(row, { lostToday: s.lostToday, resumeTime, oversBowledAtStop: lastStop?.oversBowled ?? 0, teaTaken: teaBeforeResume });
     out.quota = q;
     const tea = teaDecision(row, { t: now, teaTaken: s.teaTaken, dayStart: s.dayStart ?? s.scheduledStart }); out.tea = tea;
     if (s.day === 1 && s.phase === 'notstarted' && now > row.day1NoStartBy) flags.push({ level: 'danger', text: `Not started by ${fmtTime(row.day1NoStartBy)}: a one-day match is played on day two; umpires receive half the daily fee`, cite: 'By-law 3.12.5', action: 'CONVERT' });

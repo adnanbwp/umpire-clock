@@ -278,6 +278,19 @@ test('replay: Kelly two-day, rain 1.10–2.00 with 11 overs → quota 65, extend
   assert.ok(d.timetable.some(x => x.label === 'Extended stumps' && x.t === 1050));
 });
 
+test('replay: two-day quota is fixed at resumption; taking tea later does not change it', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 }, { type: 'RESUME', t: 840 },
+    { type: 'BREAK_START', t: 875, kind: 'tea' }, { type: 'BREAK_END', t: 895 }];
+  assert.equal(replay(ev, 900).quota.quota, 65);
+});
+
+test('replay: tea taken before the stoppage is not deducted from time remaining', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'BREAK_START', t: 875, kind: 'tea' }, { type: 'BREAK_END', t: 895 },
+    { type: 'STOP', t: 900, reason: 'weather', oversBowled: 38, balls: 0 }, { type: 'RESUME', t: 960 }];
+  // lost 60 → extended stumps 5.30; remaining 1050 − 960 − 0 = 90 → 26 overs; min(70, 38 + 26) = 64
+  assert.equal(replay(ev, 965).quota.quota, 64);
+});
+
 test('replay: two-day tea taken and deferred', () => {
   const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'TEA_DEFER', t: 875 }];
   let d = replay(ev, 880);
