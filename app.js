@@ -3,7 +3,8 @@ import { SEASONS, CURRENT_SEASON, FORMATS, GRADES, getRow, quoteFor, minutesPerO
 import { replay, fmtTime, oversBalls, bowlerLimits, fieldingRestrictions } from './rules.js';
 
 const KEY = 'umpire-clock:events', ARCHIVE = 'umpire-clock:archive';
-let events = JSON.parse(localStorage.getItem(KEY) || '[]');
+let events;
+try { events = JSON.parse(localStorage.getItem(KEY) || '[]'); if (!Array.isArray(events)) events = []; } catch { events = []; }
 let view = 'status';
 const $ = s => document.querySelector(s);
 const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
@@ -14,6 +15,11 @@ const cite = c => c ? `<button class="cite" data-cite="${esc(c)}">${esc(c)}</but
 const mins = n => `${n} min`;
 
 function save() { localStorage.setItem(KEY, JSON.stringify(events)); render(); }
+function archiveCurrent() {
+  const arc = JSON.parse(localStorage.getItem(ARCHIVE) || '[]');
+  arc.unshift({ savedAt: new Date().toISOString(), events });
+  localStorage.setItem(ARCHIVE, JSON.stringify(arc.slice(0, 20)));
+}
 function dispatch(e) { events.push(e); save(); }
 function undo() { events.pop(); save(); }
 
@@ -26,14 +32,16 @@ function openPanel(title, fields, onSubmit) {
   $('#pf').onsubmit = ev => { ev.preventDefault(); onSubmit(Object.fromEntries(new FormData(ev.target))); dlg.close(); };
 }
 const timeField = (label = 'Time') => `<label>${label}<input type="time" name="t" value="${toHHMM(nowMin())}" required></label>`;
-const oversFields = () => `<label>Overs bowled<input type="number" name="overs" min="0" inputmode="numeric" required></label>
+const oversFields = (label = 'Overs bowled') => `<label>${label}<input type="number" name="overs" min="0" inputmode="numeric" required></label>
   <label>Balls in the current over<input type="number" name="balls" min="0" max="5" value="0" inputmode="numeric"></label>`;
 const num = v => Number(v || 0);
+// Two-day counts are per day: 3.16.2.2 recalculates the day's quota, not an innings'.
+const oversLabel = d => d.format === 'twoday' ? 'Overs bowled today (both innings if the innings changed)' : 'Overs bowled';
 
 const actions = {
   START: () => openPanel('Play started', timeField('First ball'), f => dispatch({ type: 'START', t: fromHHMM(f.t) })),
-  STOP: () => openPanel('Stoppage', `${timeField('Play stopped')}
-      <label>Reason<select name="reason"><option>weather</option><option>light</option><option>heat</option><option>injury</option><option>other</option></select></label>${oversFields()}`,
+  STOP: d => openPanel('Stoppage', `${timeField('Play stopped')}
+      <label>Reason<select name="reason"><option>weather</option><option>light</option><option>heat</option><option>injury</option><option>other</option></select></label>${oversFields(oversLabel(d))}`,
     f => dispatch({ type: 'STOP', t: fromHHMM(f.t), reason: f.reason, oversBowled: num(f.overs), balls: num(f.balls) })),
   RESUME: () => openPanel('Resume', timeField('Play resumes'), f => dispatch({ type: 'RESUME', t: fromHHMM(f.t) })),
   INNINGS_END: d => openPanel('Innings closed', `${timeField()}
@@ -44,13 +52,13 @@ const actions = {
   DRINKS: () => openPanel('Drinks', timeField(), f => dispatch({ type: 'BREAK_START', t: fromHHMM(f.t), kind: 'drinks' })),
   BREAK_END: () => openPanel('Play resumes', timeField(), f => dispatch({ type: 'BREAK_END', t: fromHHMM(f.t) })),
   TEA_DEFER: () => openPanel('Tea deferred (nine down)', timeField('Scheduled tea passed at'), f => dispatch({ type: 'TEA_DEFER', t: fromHHMM(f.t) })),
-  OVERS: () => openPanel('Over-rate check', `${timeField()}${oversFields()}`, f => dispatch({ type: 'OVERS', t: fromHHMM(f.t), oversBowled: num(f.overs), balls: num(f.balls) })),
-  STUMPS: () => openPanel('Stumps', `${timeField('Last ball')}<label>Overs bowled today / this innings<input type="number" name="overs" min="0" inputmode="numeric" required></label>
+  OVERS: d => openPanel('Over-rate check', `${timeField()}${oversFields(oversLabel(d))}`, f => dispatch({ type: 'OVERS', t: fromHHMM(f.t), oversBowled: num(f.overs), balls: num(f.balls) })),
+  STUMPS: d => openPanel('Stumps', `${timeField('Last ball')}<label>${d.format === 'twoday' ? 'Overs bowled today' : 'Overs bowled this innings'}<input type="number" name="overs" min="0" inputmode="numeric" required></label>
       <label>Allowance minutes (drinks, injuries, lost balls)<input type="number" name="allow" min="0" value="0" inputmode="numeric"></label>`,
     f => dispatch({ type: 'STUMPS', t: fromHHMM(f.t), oversBowled: num(f.overs), allowanceMin: num(f.allow) })),
   ABANDON: () => openPanel('Abandon', `${timeField()}<label>Reason<input name="reason" placeholder="weather, no start, dangerous ground"></label>`,
     f => dispatch({ type: 'ABANDON', t: fromHHMM(f.t), reason: f.reason })),
-  CONVERT: d => { const setup = events.find(e => e.type === 'SETUP');
+  CONVERT: d => { const setup = events.find(e => e.type === 'SETUP'); archiveCurrent();
     events = [{ ...setup, format: 'oneday', day: 2 }, { type: 'NOTE', t: nowMin(), text: 'Day one not started by 3.00 pm: converted to a one-day match on day two (by-law 3.12.5). Umpires receive half the daily fee for day one.' }]; save(); },
   UNDO: undo,
 };
@@ -77,7 +85,8 @@ function renderSetup(d) {
   const showDerived = () => {
     const f = Object.fromEntries(new FormData(form)); const r = getRow(CURRENT_SEASON, f.format, f.grade);
     const rows = [['Stumps', fmtTime(r.stumps)], ['Overs', f.format === 'twoday' ? `${r.overs} a day` : `${r.overs} a side`],
-      f.format !== 'twoday' && ['No game under', `${r.noGame} overs`], ['Tea', fmtTime(r.tea)],
+      f.format !== 'twoday' && ['No game under', `${r.noGame} overs`],
+      [f.format === 'twoday' ? 'Tea' : 'First innings ends (scheduled rate)', fmtTime(r.tea)],
       f.format !== 'twoday' && ['Hard stop', fmtTime(r.hardStop)], f.format !== 'twoday' && ['No start by', fmtTime(r.noStartBy)],
       f.format === 'twoday' && ['Extended stumps', fmtTime(r.stumps + r.extension)], f.format === 'twoday' && ['Day one no start by', fmtTime(r.day1NoStartBy)],
       ['Minutes per over', minutesPerOver(r).toFixed(2)]].filter(Boolean);
@@ -87,17 +96,17 @@ function renderSetup(d) {
   form.onsubmit = ev => { ev.preventDefault(); const f = Object.fromEntries(new FormData(form));
     events = [{ type: 'SETUP', season: CURRENT_SEASON, format: f.format, grade: f.grade, start: fromHHMM(f.start), day: Number(f.day), drinksInterval: Number(f.drinks) }];
     view = 'status'; save(); };
-  const nm = $('#newmatch'); if (nm) nm.onclick = () => {
-    const arc = JSON.parse(localStorage.getItem(ARCHIVE) || '[]'); arc.unshift({ savedAt: new Date().toISOString(), events }); localStorage.setItem(ARCHIVE, JSON.stringify(arc.slice(0, 20)));
-    events = []; save(); };
+  const nm = $('#newmatch'); if (nm) nm.onclick = () => { archiveCurrent(); events = []; save(); };
 }
 
 // ---------- status ----------
 function resultCard(d) {
   const last = events.at(-1); if (!last) return '';
-  const heat = last.type === 'RESUME' && events.at(-2)?.reason === 'heat'
+  const heat = last.type === 'RESUME' && [...d.segments].reverse().find(x => x.kind === 'stop')?.reason === 'heat'
     ? `<p class="muted">Heat: drinks every 40 min, tea may be extended 10 min, innings break 5 min; extend the finish to cover them. ${cite('By-law 3.23.2')}</p>` : '';
   if (last.type === 'RESUME') {
+    if (d.format === 'twoday' && d.flags.some(f => f.cite === 'By-law 3.16.2.2.5'))
+      return `<div class="card"><h2>Recalculation</h2><p>Play not in progress at stumps: the day has ended. ${cite('By-law 3.16.2.2.5')}</p></div>`;
     if (d.format === 'twoday') { const q = d.quota; return `<div class="card"><h2>Recalculation</h2>
       <p>Lost today ${mins(d.lostToday)}. Extended stumps <b>${fmtTime(q.extendedStumps)}</b>.</p>
       ${q.remaining == null ? `<p>Under 30 min lost after the extension: the full ${d.row.overs} overs must be bowled.</p>`
@@ -106,14 +115,17 @@ function resultCard(d) {
     if (d.innings === 1) return `<div class="card"><h2>Recalculation</h2><p>Lost in the first innings ${mins(d.lost[1])} → <b>${d.revisedOvers} overs a side</b>${d.compulsoryAt ? `, side one closed at ${d.compulsoryAt}` : ''}.</p>${cite(`By-law ${d.row.bylaw}.2.1`)}${heat}</div>`;
     return `<div class="card"><h2>Recalculation</h2><p>Lost in the second innings ${mins(d.lost[2])} → finish <b>${fmtTime(d.finish)}</b>${d.finish === d.row.hardStop ? ' (hard stop; end of the over in progress; no resumption after)' : ''}.</p>${cite(`By-law ${d.row.bylaw}.5.2`)}${heat}</div>`;
   }
-  if (last.type === 'INNINGS_END' && d.entitlementBalls != null && d.format !== 'twoday') {
+  if (last.type === 'INNINGS_END' && (d.entitlementBalls != null || d.entitlementNote)) {
+    if (d.entitlementNote) return `<div class="card"><h2>Second side entitlement</h2><p>${esc(d.entitlementNote)}. ${cite(d.entitlementCite)}</p></div>`;
     const overs = Math.floor(d.entitlementBalls / 6), bl = bowlerLimits(overs), fr = fieldingRestrictions(overs);
     return `<div class="card"><h2>Second side entitlement</h2><p class="big">${oversBalls(d.entitlementBalls)} overs</p><p>${d.entitlementBalls} balls. ${cite(d.entitlementCite)}</p>
-      <p>Bowlers: max ${bl.max} each (${bl.split.map(x => `${x.bowlers} × ${x.overs}`).join(', ')}). ${cite(bl.cite)}</p>
-      ${d.grade === 'jika' || d.grade === 'quick' ? `<p>Fielding restrictions: ${fr.blocks ? fr.blocks.map(b => `overs ${b.from}–${b.to}: ${b.out} out`).join('; ') : 'no by-law provision for this total; captains to agree'}. ${cite(fr.cite)}</p>` : ''}</div>`;
+      ${d.format === 'twoday' ? '' : `<p>Bowlers: max ${bl.max} each (${bl.split.map(x => `${x.bowlers} × ${x.overs}`).join(', ')}). ${cite(bl.cite)}</p>
+      ${d.format === 'oneday' && (d.grade === 'jika' || d.grade === 'quick') ? `<p>Fielding restrictions: ${fr.blocks ? fr.blocks.map(b => `overs ${b.from}–${b.to}: ${b.out} out`).join('; ') : 'no by-law provision for this total; captains to agree'}. ${cite(fr.cite)}</p>` : ''}`}</div>`;
   }
   if (last.type === 'STUMPS' && d.stumpsReport) {
-    const r = d.stumpsReport; return `<div class="card"><h2>Over-rate report</h2><p class="big">${r.short} short</p><p>Allowance ${last.allowanceMin} min = ${r.allowanceOvers} overs. ${cite(r.cite)}</p></div>`;
+    const r = d.stumpsReport;
+    if (r.note) return `<div class="card"><h2>Over-rate report</h2><p>${esc(r.note)}. ${cite(r.cite)}</p></div>`;
+    return `<div class="card"><h2>Over-rate report</h2><p class="big">${r.short} short</p><p>Allowance ${last.allowanceMin} min = ${r.allowanceOvers} overs. ${cite(r.cite)}</p></div>`;
   }
   if (last.type === 'OVERS') return `<div class="card"><h2>Over-rate check</h2><p class="big">${d.behind > 0 ? `${d.behind} behind` : d.behind < 0 ? `${-d.behind} ahead` : 'on time'}</p><p>Entered ${last.oversBowled}.${last.balls || 0} at ${fmtTime(last.t)}; scheduled rate says ${d.expected}.</p></div>`;
   return '';
