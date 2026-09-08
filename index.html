@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d2e">
+<title>Umpire Clock</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<style>
+:root { --bg:#f6f7f4; --fg:#111; --muted:#555; --card:#fff; --line:#d9ddd6; --accent:#0b3d2e; --warn:#8a5a00; --danger:#a1120f }
+* { box-sizing:border-box }
+body { margin:0; font:18px/1.35 system-ui,sans-serif; background:var(--bg); color:var(--fg) }
+main { max-width:32rem; margin:0 auto; padding:1rem 1rem 6rem }
+h1 { font-size:1.25rem; margin:0 0 .5rem } h2 { font-size:1.1rem; margin:0 0 .5rem }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem; margin:.75rem 0 }
+.big { font-size:2.5rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums }
+.muted { color:var(--muted) }
+.flag { padding:.6rem .8rem; border-radius:8px; margin:.5rem 0; border-left:6px solid }
+.flag.warn { border-color:var(--warn); background:#fff6e0 }
+.flag.danger { border-color:var(--danger); background:#ffe9e8 }
+.flag.info { border-color:var(--accent); background:#e8f3ee }
+button { font:inherit; min-height:3.25rem; padding:.6rem 1rem; border-radius:10px; border:1px solid var(--line); background:#fff; color:var(--fg) }
+button.primary { background:var(--accent); color:#fff; border-color:var(--accent) }
+button.danger { background:var(--danger); color:#fff; border-color:var(--danger) }
+.row { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 } .row > button { flex:1 1 40% }
+label { display:block; margin:.6rem 0 .2rem }
+input, select { font:inherit; width:100%; min-height:3rem; padding:.4rem .6rem; border:1px solid var(--line); border-radius:8px; background:#fff }
+table { width:100%; border-collapse:collapse }
+td { padding:.35rem 0; border-bottom:1px solid var(--line); vertical-align:top }
+td.t { white-space:nowrap; width:5.5rem; font-variant-numeric:tabular-nums }
+tr.past { color:var(--muted) } tr.next td { font-weight:700 }
+.cite { color:var(--accent); text-decoration:underline dotted; cursor:pointer; background:none; border:0; padding:0; min-height:0; font:inherit; font-size:.85rem; text-align:left }
+dialog { border:0; border-radius:12px; width:min(32rem,92vw); padding:1rem; font-size:1rem } dialog::backdrop { background:#0006 }
+nav { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line); display:flex }
+nav button { flex:1; border:0; border-radius:0; min-height:3.5rem } nav button[aria-current] { color:var(--accent); font-weight:700 }
+pre { white-space:pre-wrap; font-size:.9rem }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav id="nav" hidden>
+  <button data-view="status" aria-current="page">Status</button>
+  <button data-view="log">Log</button>
+  <button data-view="setup">Match</button>
+</nav>
+<dialog id="cite"><div id="cite-body"></div><form method="dialog" style="margin-top:.75rem"><button class="primary">Close</button></form></dialog>
+<dialog id="panel"><div id="panel-body"></div></dialog>
+<script type="module" src="app.js"></script>
+</body>
+</html>
