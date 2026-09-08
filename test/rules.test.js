@@ -310,6 +310,40 @@ test('replay: OVERS entry only records overs', () => {
   assert.equal(d.behind, 2);
 });
 
+test('replay: RESUME without an open stoppage is ignored', () => {
+  const d = replay([setup('oneday', 'jika'), { type: 'RESUME', t: 760 }], 770);
+  assert.equal(d.phase, 'notstarted');
+  const d2 = replay([setup('oneday', 'jika'), { type: 'START', t: 750 }, { type: 'RESUME', t: 800 }], 810);
+  assert.equal(d2.phase, 'play');
+  assert.equal(d2.lost[1], 0);
+  assert.equal(d2.expected, 17);   // 60 min / 3.5
+});
+
+test('replay: innings ends during a stoppage books the lost time', () => {
+  const ev = [setup('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 },
+    { type: 'INNINGS_END', t: 811, how: 'allout', oversBowled: 11, balls: 2, breakKind: 'innings' }];
+  const d = replay(ev, 815);
+  assert.equal(d.lost[1], 21);
+  assert.equal(d.revisedOvers, 32);
+  assert.equal(d.phase, 'break');
+});
+
+test('replay: tea taken during a stoppage books the lost time up to tea', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 860, reason: 'weather', oversBowled: 30, balls: 0 },
+    { type: 'BREAK_START', t: 865, kind: 'tea' }, { type: 'BREAK_END', t: 885 }];
+  const d = replay(ev, 890);
+  assert.equal(d.lostToday, 5);
+  assert.equal(d.teaTaken, true);
+  assert.equal(d.phase, 'play');
+});
+
+test('replay: STOP without overs uses the scheduled-rate estimate', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 820, reason: 'weather' }, { type: 'RESUME', t: 870 }];
+  const d = replay(ev, 875);
+  // 70 min at 250/70 min per over = 19 overs at the stop; lost 50 → remaining 1050-870-20 = 160 → 46; min(70, 19+46) = 65
+  assert.equal(d.quota.quota, 65);
+});
+
 test('replay: stumps report', () => {
   const ev = [setup('twoday', 'jika'), { type: 'START', t: 750 }, { type: 'STUMPS', t: 1050, oversBowled: 78, allowanceMin: 0 }];
   const d = replay(ev, 1051);
