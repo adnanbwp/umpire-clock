@@ -160,7 +160,47 @@ function renderStatus(d) {
     <div class="card"><h2>Timetable</h2><table>${d.timetable.map(x => `<tr class="${x.t <= now ? 'past' : ''} ${x === next ? 'next' : ''}"><td class="t">${fmtTime(x.t)}</td><td>${esc(x.label)}<br>${cite(x.cite)}</td></tr>`).join('')}</table></div>`;
 }
 
-function renderLog(d) { $('#app').innerHTML = '<h1>Log</h1><p class="muted">Task 7.</p>'; }
+function describe(e) {
+  const t = e.t != null ? fmtTime(e.t) : '';
+  switch (e.type) {
+    case 'SETUP': return `Setup: ${FORMATS[e.format]}, ${GRADES[e.grade]}, scheduled start ${fmtTime(e.start)}${e.format === 'twoday' ? `, day ${e.day}` : ''}${e.drinksInterval ? `, drinks every ${e.drinksInterval} min` : ''}`;
+    case 'START': return `${t} Play started`;
+    case 'STOP': return `${t} Stoppage (${e.reason}) at ${e.oversBowled}.${e.balls || 0} overs`;
+    case 'RESUME': return `${t} Play resumed`;
+    case 'INNINGS_END': return `${t} Innings closed (${e.how === 'compulsory' ? 'compulsory closure' : 'all out / declared'}) at ${e.oversBowled}.${e.balls || 0}; ${e.breakKind === 'tea' ? 'tea' : 'innings break'}`;
+    case 'BREAK_START': return `${t} ${e.kind === 'tea' ? 'Tea' : 'Drinks'}`;
+    case 'BREAK_END': return `${t} Play resumed after break`;
+    case 'TEA_DEFER': return `${t} Tea deferred (nine down)`;
+    case 'OVERS': return `${t} Over-rate check: ${e.oversBowled}.${e.balls || 0} overs`;
+    case 'STUMPS': return `${t} Stumps at ${e.oversBowled} overs, allowance ${e.allowanceMin} min`;
+    case 'ABANDON': return `${t} Abandoned: ${e.reason || ''}`;
+    case 'NOTE': return `${t} Note: ${e.text}`;
+    default: return `${t} ${e.type}`;
+  }
+}
+function logText(evs, d) {
+  const lines = evs.map(describe);
+  if (d.stumpsReport) lines.push(`Overs short to report: ${d.stumpsReport.short} (allowance ${d.stumpsReport.allowanceOvers} overs)`);
+  if (d.format !== 'twoday' && d.revisedOvers != null) lines.push(`Overs a side: ${d.revisedOvers}; lost first innings ${d.lost[1]} min, second innings ${d.lost[2] || 0} min`);
+  if (d.format === 'twoday' && d.quota) lines.push(`Day quota: ${d.quota.quota}; lost ${d.lostToday} min; stumps ${fmtTime(d.quota.extendedStumps)}`);
+  return `Umpire Clock — ${new Date().toLocaleDateString('en-AU')}\n` + lines.join('\n');
+}
+function renderLog(d) {
+  const arc = JSON.parse(localStorage.getItem(ARCHIVE) || '[]');
+  $('#app').innerHTML = `<h1>Log</h1>
+    <div class="row"><button id="share" class="primary">Share</button><button id="note">Add note</button></div>
+    <div class="card"><pre id="logtext">${esc(logText(events, d))}</pre></div>
+    ${arc.length ? `<div class="card"><h2>Past matches</h2>${arc.map((a, i) => `<p>${new Date(a.savedAt).toLocaleString('en-AU')} · ${a.events.length} events <button data-arc="${i}">Show</button></p>`).join('')}</div>` : ''}`;
+  $('#share').onclick = async () => {
+    const text = $('#logtext').textContent;
+    if (navigator.share) { try { await navigator.share({ title: 'Umpire Clock log', text }); } catch {} }
+    else { await navigator.clipboard.writeText(text); $('#share').textContent = 'Copied'; }
+  };
+  $('#note').onclick = () => openPanel('Note', `${timeField()}<label>Text<input name="text" required></label>`, f => dispatch({ type: 'NOTE', t: fromHHMM(f.t), text: f.text }));
+  for (const b of document.querySelectorAll('[data-arc]')) b.onclick = () => {
+    const a = arc[Number(b.dataset.arc)]; const dd = replay(a.events, 1440);
+    $('#cite-body').innerHTML = `<pre>${esc(logText(a.events, dd))}</pre>`; $('#cite').showModal(); };
+}
 
 // ---------- router ----------
 function render() {
