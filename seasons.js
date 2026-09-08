@@ -1,5 +1,6 @@
 // seasons.js — every by-law constant, with its citation. Minutes since midnight.
 // Source: NMCA Senior Playing By-Laws 2025-26 (kb/nmca-senior-playing-by-laws-2025-26.md).
+// Changing anything in this file requires bumping VERSION in sw.js, or installed phones keep the old numbers.
 export const CURRENT_SEASON = '2025-26';
 
 export const FORMATS = { oneday: 'One-day', dodc: 'Designated one-day', twoday: 'Two-day' };

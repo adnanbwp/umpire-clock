@@ -14,3 +14,8 @@ signal after the first load.
 `docs/spec.md` §7.
 
 Develop: `npm test`, `npm run serve` then open http://localhost:8080/.
+
+## Maintenance
+
+Changing anything in `seasons.js` requires bumping VERSION in `sw.js`, or installed phones keep
+the old numbers. Check the NMCA rules page before round one each season.
