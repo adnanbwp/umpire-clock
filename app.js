@@ -105,7 +105,7 @@ function resultCard(d) {
   const heat = last.type === 'RESUME' && [...d.segments].reverse().find(x => x.kind === 'stop')?.reason === 'heat'
     ? `<p class="muted">Heat: drinks every 40 min, tea may be extended 10 min, innings break 5 min; extend the finish to cover them. ${cite('By-law 3.23.2')}</p>` : '';
   if (last.type === 'RESUME') {
-    if (d.format === 'twoday' && d.flags.some(f => f.cite === 'By-law 3.16.2.2.5'))
+    if (d.format === 'twoday' && last.t >= d.quota.extendedStumps)
       return `<div class="card"><h2>Recalculation</h2><p>Play not in progress at stumps: the day has ended. ${cite('By-law 3.16.2.2.5')}</p></div>`;
     if (d.format === 'twoday') { const q = d.quota; return `<div class="card"><h2>Recalculation</h2>
       <p>Lost today ${mins(d.lostToday)}. Extended stumps <b>${fmtTime(q.extendedStumps)}</b>.</p>
