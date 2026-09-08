@@ -67,7 +67,7 @@ const actions = {
 function renderSetup(d) {
   const setup = events.find(e => e.type === 'SETUP');
   const live = d.phase !== 'setup' && d.phase !== 'notstarted';
-  const v = { format: setup?.format ?? 'oneday', grade: setup?.grade ?? 'quick', start: setup?.start ?? 750, day: setup?.day ?? 1, drinks: setup?.drinksInterval ?? 0 };
+  const v = { format: setup?.format ?? 'oneday', grade: setup?.grade ?? 'quick', start: setup?.start ?? 750, day: setup?.day ?? 1, drinks: setup ? (setup.drinks ?? (setup.drinksInterval > 0)) : true };
   const opts = (map, sel) => Object.entries(map).map(([k, l]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${l}</option>`).join('');
   $('#app').innerHTML = `<h1>Umpire Clock</h1>
     ${live ? `<div class="card"><b>Match in progress.</b> Setup is locked. <div class="row"><button id="newmatch" class="danger">New match (archive this one)</button></div></div>` : ''}
@@ -76,7 +76,7 @@ function renderSetup(d) {
       <label>Grade<select name="grade">${opts(GRADES, v.grade)}</select></label>
       <label>Scheduled start<input type="time" name="start" value="${toHHMM(v.start)}"></label>
       <label>Day (two-day only)<select name="day"><option value="1" ${v.day === 1 ? 'selected' : ''}>Day 1</option><option value="2" ${v.day === 2 ? 'selected' : ''}>Day 2</option></select></label>
-      <label>Drinks every (minutes of play, 0 = off)<input type="number" name="drinks" min="0" value="${v.drinks}" inputmode="numeric"></label>
+      <label><input type="checkbox" name="drinks" ${v.drinks ? 'checked' : ''} style="width:auto;min-height:0;margin-right:.5rem"> Drinks at the halfway over of each innings or session (club practice)</label>
       <p class="muted">${esc(SEASONS[CURRENT_SEASON].label)}</p>
       <div id="derived"></div>
       ${live ? '' : '<div class="row"><button class="primary">Start match</button></div>'}
@@ -94,7 +94,7 @@ function renderSetup(d) {
   };
   form.oninput = showDerived; showDerived();
   form.onsubmit = ev => { ev.preventDefault(); const f = Object.fromEntries(new FormData(form));
-    events = [{ type: 'SETUP', season: CURRENT_SEASON, format: f.format, grade: f.grade, start: fromHHMM(f.start), day: Number(f.day), drinksInterval: Number(f.drinks) }];
+    events = [{ type: 'SETUP', season: CURRENT_SEASON, format: f.format, grade: f.grade, start: fromHHMM(f.start), day: Number(f.day), drinks: f.drinks === 'on' }];
     view = 'status'; save(); };
   const nm = $('#newmatch'); if (nm) nm.onclick = () => { archiveCurrent(); events = []; save(); };
 }
@@ -137,7 +137,7 @@ function buttons(d) {
   let out = '';
   if (d.phase === 'notstarted') out = b('START', 'Play started', 'primary') + b('ABANDON', 'Abandon', 'danger');
   else if (d.phase === 'play') out = b('STOP', 'Stoppage', 'primary') + b('INNINGS_END', 'Innings closed') + b('OVERS', 'Over-rate check')
-    + (two && !d.teaTaken && d.tea?.tea !== 'none' ? b('TEA', 'Tea now') + b('TEA_DEFER', 'Tea deferred') : '') + (d.drinksInterval ? b('DRINKS', 'Drinks') : '') + b('STUMPS', 'Stumps');
+    + (two && !d.teaTaken && d.tea?.tea !== 'none' ? b('TEA', 'Tea now') + b('TEA_DEFER', 'Tea deferred') : '') + (d.drinks ? b('DRINKS', 'Drinks') : '') + b('STUMPS', 'Stumps');
   else if (d.phase === 'stoppage') out = b('RESUME', 'Resume play', 'primary') + b('ABANDON', 'Abandon', 'danger') + (two && !d.teaTaken && d.tea?.tea !== 'none' ? b('TEA', 'Tea now') : '');
   else if (d.phase === 'break') out = b('BREAK_END', 'Play resumes', 'primary');
   if (d.flags.some(f => f.action === 'CONVERT')) out += b('CONVERT', 'Convert to one-day', 'danger');
@@ -164,7 +164,7 @@ function renderStatus(d) {
 function describe(e) {
   const t = e.t != null ? fmtTime(e.t) : '';
   switch (e.type) {
-    case 'SETUP': return `Setup: ${FORMATS[e.format]}, ${GRADES[e.grade]}, scheduled start ${fmtTime(e.start)}${e.format === 'twoday' ? `, day ${e.day}` : ''}${e.drinksInterval ? `, drinks every ${e.drinksInterval} min` : ''}`;
+    case 'SETUP': return `Setup: ${FORMATS[e.format]}, ${GRADES[e.grade]}, scheduled start ${fmtTime(e.start)}${e.format === 'twoday' ? `, day ${e.day}` : ''}${e.drinks ? ', drinks at the halfway over' : ''}`;
     case 'START': return `${t} Play started`;
     case 'STOP': return `${t} Stoppage (${e.reason}) at ${e.oversBowled}.${e.balls || 0} overs`;
     case 'RESUME': return `${t} Play resumed`;

@@ -83,7 +83,7 @@ export const QUOTES = {
   'Handbook S1 §2': 'Lost time ready reckoner: 0-6 minutes no reduction, 7-13 one over, and so on (one over per seven minutes, rounded down).',
   'Handbook S1 §3': 'When the quota is bowled, umpires check the time taken, factor in extra drinks, injuries, lost balls, and report overs not bowled by the scheduled time. Time-remaining table: one over per 3.5 minutes, nearest.',
   'Interpretation': 'Not stated in the by-laws. The app applies the reading shown; adjust the inputs if the umpires\' association reads it differently.',
-  'Setup': 'Drinks interval chosen at match setup. Not a by-law; the heat rule (3.23.2) asks for drinks every 40 minutes once play resumes after a 38-degree stop.',
+  'Practice': 'Club practice, not a by-law: drinks at the halfway over of each innings in a one-day match, and of each session either side of tea in a two-day match (17 of 35, 20 of 40, rounded down). After a heat stoppage the by-law rule applies instead: drinks every 40 minutes (3.23.2.1).',
   'By-law 3.15 table': 'One-day: Jika 12.30 pm start, 5.30 pm stumps, 40 overs a side, no game under 25, tea 2.50 pm. Quick, Kelly and all other grades: 12.30 pm, 5.00 pm, 35 overs, no game under 20, tea 2.35 pm.',
   'By-law 3.16 table': 'Two-day: Jika 12.30 pm start, 5.30 pm stumps, 80 overs, tea 2.50 pm. Quick and Kelly: 5.00 pm stumps, 70 overs, tea 2.35 pm. All other grades: 4.45 pm stumps, 65 overs, tea 2.30 pm.',
   'By-law 3.17 table': 'Designated one-day: all grades 12.30 pm start, 5.00 pm stumps, 35 overs a side, no game under 20, tea 2.35 pm.',

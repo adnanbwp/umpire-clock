@@ -40,7 +40,7 @@ Inputs:
 | Grade group | Jika; Quick or Kelly; All other grades (one-day and DODC collapse Quick/Kelly/others into one row per the by-law tables) | Quick or Kelly |
 | Scheduled start | time | 12.30 |
 | Day | 1 or 2 (two-day only) | 1 |
-| Drinks interval | off, or minutes | off |
+| Drinks at the halfway over | on / off | on |
 
 Derived and displayed for confirmation, each with its citation: stumps, scheduled overs,
 no-game overs (one-day), scheduled tea, extended finish, hard stop, no-start cut-off,
@@ -220,9 +220,13 @@ tea 20 minutes as near as possible to the scheduled time, at the end of an over 
 wicket; an innings ending or a stoppage within 30 minutes of scheduled tea → take tea then,
 no separate 10-minute interval, no over deduction (3.16.1.2); nine down at tea → **Tea
 deferred**, up to 30 minutes (3.16.1.3); a day starting at or after 2.30 pm has no tea
-(3.16.1.4). Drinks, if configured, every N playing minutes; heat rule extensions (3.23.2:
-drinks every 40 min, tea +10, innings break +5, extend the finish) appear as a note on the
-stoppage card when the reason is heat.
+(3.16.1.4). Drinks follow club practice, not a by-law (Adnan, 9 Sep 2026): once per innings
+in a one-day match after over floor(overs ÷ 2), so 17 of 35 and 20 of 40; twice a day in a
+two-day match, at the halfway over of the session before tea (the overs scheduled before tea
+at the day's rate) and of the session after it (the overs left under the current quota). A
+rain recalculation halves what remains of the session. After a heat stoppage the by-law rule
+takes over: drinks every 40 minutes of play (3.23.2.1), with the tea +10 and innings break +5
+extensions shown as a note on the stoppage card.
 
 ### 4.6 Expected overs now
 
@@ -284,10 +288,11 @@ in daylight.
 3. Whether a second-innings stoppage under 30 minutes extends the finish by that much or
    not at all: the by-law only speaks to over 30 minutes; the app extends by the minutes
    lost, capped at the hard stop, and says so.
-4. The by-laws and the 2025-26 Umpires and Captains Handbook disagree on two one-day
-   cut-offs: 3.15.2.2 requires the no-game overs by 3.30 pm where the handbook (Section 1
-   §2) says 4.00 pm, and 3.15.2.4 abandons a match not started by 2.45 pm where the
-   handbook says 2.30 pm. The app uses the by-law; the quote shown says so.
+4. The 2025-26 Umpires and Captains Handbook (Section 1 §2) abandons a one-day match not
+   started by 2.30 pm and one where 25 overs are not bowled to the first side by 4.00 pm;
+   by-laws 3.15.2.4 and 3.15.2.2 say 2.45 pm and 3.30 pm. The app follows the by-law and
+   shows the conflict in the citation text. Settle it with the umpires' association before
+   round one, because the umpire at the other end may be holding the handbook.
 
 Confirm 1–4 with the umpires' association; the season table changes when the 2026-27
 by-laws are published.

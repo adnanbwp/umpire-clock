@@ -125,7 +125,7 @@ function applyEvent(s, e) {
   switch (e.type) {
     case 'SETUP':
       s.seasonId = e.season; s.format = e.format; s.grade = e.grade; s.row = getRow(e.season, e.format, e.grade);
-      s.day = e.day || 1; s.drinksInterval = e.drinksInterval || 0; s.scheduledStart = e.start ?? s.row.start;
+      s.day = e.day || 1; s.drinks = e.drinks ?? ((e.drinksInterval || 0) > 0); s.scheduledStart = e.start ?? s.row.start;
       s.phase = 'notstarted'; break;
     case 'START': {
       s.phase = 'play'; s.innings = 1; s.firstBall = e.t; s.dayStart = e.t;
@@ -165,7 +165,7 @@ function applyEvent(s, e) {
 }
 
 export function replay(events, now) {
-  const s = { phase: 'setup', format: null, grade: null, row: null, seasonId: null, day: 1, drinksInterval: 0,
+  const s = { phase: 'setup', format: null, grade: null, row: null, seasonId: null, day: 1, drinks: false,
     scheduledStart: null, innings: 0, firstBall: null, dayStart: null, segments: [], lostByInnings: { 1: 0, 2: 0 },
     lostWeatherByInnings: { 1: 0, 2: 0 }, lostToday: 0, teaTaken: false, teaDeferredAt: null, oversEntries: [], inningsEnds: [],
     stumps: null, stumpsDuringStop: false, notes: [], abandoned: false };
@@ -191,15 +191,10 @@ function derive(s, now) {
   const push = (t, label, kind, cite) => tt.push({ t: Math.round(t), label, kind, cite });
   push(s.scheduledStart, 'Scheduled start', 'info', row.cite);
   if (!s.firstBall) push(s.scheduledStart + 15, 'Team not ready: loses match', 'cutoff', 'By-law 3.12.3');
-  const lastBreakEnd = [...s.segments].reverse().find(x => x.kind !== 'play' && x.to != null)?.to ?? s.firstBall;
-  if (s.drinksInterval && s.phase === 'play') {
-    const since = playedMinutes(s.segments, null, now) - playedMinutes(s.segments, null, lastBreakEnd);
-    push(now + Math.max(0, s.drinksInterval - since), 'Drinks', 'break', 'Setup');
-  }
   let out = { phase: s.phase, format: s.format, grade: s.grade, row, seasonId: s.seasonId, day: s.day, innings: s.innings, now,
     expected, currentOvers, behind, lost: s.lostByInnings, lostToday: s.lostToday, oversEntries: s.oversEntries,
     inningsEnds: s.inningsEnds, segments: s.segments, notes: s.notes, teaTaken: s.teaTaken, teaDeferredAt: s.teaDeferredAt,
-    scheduledStart: s.scheduledStart, firstBall: s.firstBall, drinksInterval: s.drinksInterval, abandoned: s.abandoned,
+    scheduledStart: s.scheduledStart, firstBall: s.firstBall, drinks: s.drinks, drinksAt: null, abandoned: s.abandoned,
     mpo, revisedOvers: null, compulsoryAt: null, entitlementBalls: null, entitlementCite: null, entitlementNote: null,
     finish: null, quota: null, tea: null, stumpsReport: null };
 
@@ -255,6 +250,36 @@ function derive(s, now) {
     if (s.phase === 'break') { const b = s.segments.at(-1); push(b.from + (b.breakKind === 'tea' ? row.teaLen : row.inningsInterval), b.breakKind === 'tea' ? 'Tea ends' : 'Play resumes', 'break', 'By-law 3.16.1'); }
     if (s.phase === 'play') push(now + Math.max(0, q.quota - currentOvers) * mpo, `Quota ${q.quota} overs (projected)`, 'info', q.cite);
     push(q.extendedStumps, q.extendedStumps === row.stumps ? 'Stumps' : 'Extended stumps', 'finish', q.cite);
+  }
+  // Drinks: club practice, not a by-law — the halfway over of each innings (one-day) or each
+  // session either side of tea (two-day). After a heat stoppage, every 40 minutes of play (3.23.2.1).
+  if (s.drinks && s.firstBall && !s.stumps && !s.abandoned) {
+    const taken = s.segments.filter(x => x.kind === 'break' && x.breakKind === 'drinks');
+    const lastResumed = [...s.segments].reverse().find(x => x.kind === 'stop' && x.resumed);
+    if (lastResumed?.reason === 'heat') {
+      const lastEnd = [...s.segments].reverse().find(x => x.kind !== 'play' && x.to != null)?.to ?? s.firstBall;
+      const since = playedMinutes(s.segments, null, now) - playedMinutes(s.segments, null, lastEnd);
+      push(now + Math.max(0, 40 - since), 'Drinks (heat rule, every 40 min)', 'break', 'By-law 3.23.2');
+    } else {
+      let at = null;
+      if (!twoDay) {
+        if (!taken.some(x => x.innings === s.innings)) at = Math.floor((out.compulsoryAt ?? out.revisedOvers) / 2);
+      } else {
+        const teaSeg = s.segments.find(x => x.kind === 'break' && x.breakKind === 'tea');
+        if (!teaSeg) {
+          if (!taken.length) at = Math.floor((currentOvers + Math.max(0, row.tea - now) / mpo) / 2);
+        } else if (!taken.some(x => x.from > teaSeg.from)) {
+          const atTea = [...s.oversEntries].reverse().find(x => x.t <= teaSeg.from)?.overs
+            ?? expectedOvers(row, playedMinutes(s.segments, null, teaSeg.from));
+          at = atTea + Math.floor(Math.max(0, out.quota.quota - atTea) / 2);
+        }
+      }
+      if (at != null) {
+        out.drinksAt = at;
+        if (at <= currentOvers) push(now, 'Drinks now (halfway over passed)', 'break', 'Practice');
+        else push(now + (at - currentOvers) * mpo, `Drinks after over ${at}`, 'break', 'Practice');
+      }
+    }
   }
   tt.sort((a, b) => a.t - b.t);
   out.timetable = tt; out.flags = flags;

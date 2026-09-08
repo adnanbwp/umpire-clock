@@ -468,3 +468,60 @@ test('regression: a stoppage ended by tea is the recalculation point', () => {
   // lost 55 → extended stumps 5.30; settled at 875 with tea starting then (tea at or before resume → no deduction): remaining 1050 − 875 = 175 → 50; quota min(70, 19 + 50) = 69
   assert.equal(replay(ev2, 900).quota.quota, 69);
 });
+
+// Drinks at the halfway over (club practice, per Adnan 2026-09-09), not a time interval.
+const setupD = (format, grade, drinks = true) => ({ type: 'SETUP', season: CURRENT_SEASON, format, grade, day: 1, drinks });
+const drinksRows = d => d.timetable.filter(x => /^Drinks/.test(x.label));
+
+test('drinks: one-day, halfway over of each innings, rounded down', () => {
+  let d = replay([setupD('oneday', 'quick'), { type: 'START', t: 750 }], 760);
+  assert.equal(d.drinksAt, 17);
+  assert.equal(drinksRows(d)[0].label, 'Drinks after over 17');
+  assert.equal(drinksRows(d)[0].t, Math.round(760 + (17 - d.currentOvers) * (250 / 70)));   // 2 overs down at 12.40
+  assert.equal(replay([setupD('oneday', 'jika'), { type: 'START', t: 750 }], 760).drinksAt, 20);
+  // lost time reduces the innings to 32 → drinks after over 16
+  d = replay([setupD('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 }, { type: 'RESUME', t: 811 }], 815);
+  assert.equal(d.drinksAt, 16);
+});
+
+test('drinks: taken once per innings; the second innings gets its own', () => {
+  const ev = [setupD('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'BREAK_START', t: 812, kind: 'drinks' }, { type: 'BREAK_END', t: 816 }];
+  let d = replay(ev, 820);
+  assert.equal(d.drinksAt, null);
+  assert.equal(drinksRows(d).length, 0);
+  ev.push({ type: 'INNINGS_END', t: 880, how: 'compulsory', oversBowled: 35, balls: 0, breakKind: 'innings' }, { type: 'BREAK_END', t: 900 });
+  d = replay(ev, 905);
+  assert.equal(d.drinksAt, 17);
+});
+
+test('drinks: two-day, halfway through each session', () => {
+  let d = replay([setupD('twoday', 'quick'), { type: 'START', t: 750 }], 760);
+  assert.equal(d.drinksAt, 17);                       // 35 overs before tea at the day's rate
+  const ev = [setupD('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'BREAK_START', t: 812, kind: 'drinks' }, { type: 'BREAK_END', t: 816 },
+    { type: 'OVERS', t: 874, oversBowled: 35, balls: 0 }, { type: 'BREAK_START', t: 875, kind: 'tea' }, { type: 'BREAK_END', t: 895 }];
+  d = replay(ev, 900);
+  assert.equal(d.drinksAt, 52);                       // 35 + floor((70 − 35) / 2)
+  assert.equal(drinksRows(d)[0].label, 'Drinks after over 52');
+});
+
+test('drinks: a rain recalculation halves what remains of the session', () => {
+  const d = replay([setupD('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 }, { type: 'RESUME', t: 840 }], 845);
+  // 12 overs down at 2.05 (11 entered + 1 since); (12 + (875 − 845) / (250/70)) / 2 = 10.2 → drinks after over 10, already passed → drinks now
+  assert.equal(d.drinksAt, 10);
+  assert.equal(drinksRows(d)[0].label, 'Drinks now (halfway over passed)');
+  assert.equal(drinksRows(d)[0].t, 845);
+});
+
+test('drinks: heat rule switches to every 40 minutes of play after the resumption', () => {
+  const d = replay([setupD('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 800, reason: 'heat', oversBowled: 14, balls: 0 }, { type: 'RESUME', t: 820 }], 830);
+  const r = drinksRows(d)[0];
+  assert.equal(r.label, 'Drinks (heat rule, every 40 min)');
+  assert.equal(r.t, 860);
+  assert.equal(r.cite, 'By-law 3.23.2');
+});
+
+test('drinks: off at setup → nothing scheduled', () => {
+  const d = replay([setupD('oneday', 'quick', false), { type: 'START', t: 750 }], 760);
+  assert.equal(d.drinksAt, null);
+  assert.equal(drinksRows(d).length, 0);
+});
