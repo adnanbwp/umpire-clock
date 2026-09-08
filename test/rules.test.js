@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SEASONS, CURRENT_SEASON, getRow, minutesPerOver } from '../seasons.js';
-import { fmtTime, oneDayReduction, noStartAbandoned, minOversProjection } from '../rules.js';
+import { fmtTime, oversBalls, oneDayReduction, noStartAbandoned, minOversProjection, secondInningsFinish, entitlement, bowlerLimits, fieldingRestrictions } from '../rules.js';
 
 test('season table: one-day Jika row matches by-law 3.15', () => {
   const r = getRow(CURRENT_SEASON, 'oneday', 'jika');
@@ -99,4 +99,57 @@ test('DODC rows cite by-law 3.17, not 3.15', () => {
   assert.equal(minOversProjection(d, 800, 0).cite, 'By-law 3.17.2.2');
   assert.equal(getRow(CURRENT_SEASON, 'oneday', 'jika').bylaw, '3.15');
   assert.equal(getRow(CURRENT_SEASON, 'twoday', 'jika').bylaw, '3.16');
+});
+
+test('example 4: 45 min lost in second innings → extend to hard stop 5.30', () => {
+  const k = getRow(CURRENT_SEASON, 'oneday', 'quick');
+  const f = secondInningsFinish(k, 45);
+  assert.equal(f.finish, 1050);
+  assert.equal(f.extended, true);
+  assert.match(f.cite, /3\.15\.5\.2/);
+});
+
+test('example 5: 20 min lost in second innings → finish 5.20, not extended', () => {
+  const f = secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'quick'), 20);
+  assert.equal(f.finish, 1040);
+  assert.equal(f.extended, false);
+  assert.match(f.cite, /Interpretation/);
+});
+
+test('second innings finish never passes the hard stop', () => {
+  assert.equal(secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'jika'), 30).finish, 1080);
+  assert.equal(secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'jika'), 0).finish, 1050);
+});
+
+test('example 2/3: entitlement', () => {
+  const k = getRow(CURRENT_SEASON, 'oneday', 'quick');
+  assert.equal(entitlement(k, 'oneday', { how: 'compulsory', oversBowled: 32, balls: 0, revisedOvers: 32 }).balls, 192);
+  assert.equal(entitlement(k, 'oneday', { how: 'allout', oversBowled: 22, balls: 3, revisedOvers: 32 }).balls, 192);
+  assert.match(entitlement(k, 'oneday', { how: 'allout', oversBowled: 22, balls: 3, revisedOvers: 32 }).cite, /3\.15\.4/);
+  const t = getRow(CURRENT_SEASON, 'twoday', 'quick');
+  assert.equal(entitlement(t, 'twoday', { how: 'compulsory', oversBowled: 70, balls: 0 }).balls, 420);
+  assert.equal(entitlement(t, 'twoday', { how: 'allout', oversBowled: 61, balls: 2, unusedOvers: 8 }).balls, (70 + 8) * 6);
+  assert.equal(oversBalls(135), '22.3');
+});
+
+test('bowler split follows table 3.15.12.5', () => {
+  assert.deepEqual(bowlerLimits(40).split, [{ bowlers: 5, overs: 8 }]);
+  assert.deepEqual(bowlerLimits(39).split, [{ bowlers: 4, overs: 8 }, { bowlers: 1, overs: 7 }]);
+  assert.deepEqual(bowlerLimits(33).split, [{ bowlers: 3, overs: 7 }, { bowlers: 2, overs: 6 }]);
+  assert.deepEqual(bowlerLimits(25).split, [{ bowlers: 5, overs: 5 }]);
+  assert.equal(bowlerLimits(39).max, 8);
+  assert.equal(bowlerLimits(35).max, 7);
+});
+
+test('fielding restrictions only for 40 and 35', () => {
+  assert.deepEqual(fieldingRestrictions(40).blocks, [{ from: 1, to: 10, out: 3 }, { from: 11, to: 30, out: 4 }, { from: 31, to: 40, out: 5 }]);
+  assert.deepEqual(fieldingRestrictions(35).blocks, [{ from: 1, to: 8, out: 3 }, { from: 9, to: 27, out: 4 }, { from: 28, to: 35, out: 5 }]);
+  assert.equal(fieldingRestrictions(28).blocks, null);
+});
+
+test('DODC rows cite 3.17 for finish and entitlement', () => {
+  const d = getRow(CURRENT_SEASON, 'dodc', 'other');
+  assert.equal(secondInningsFinish(d, 45).cite, 'By-law 3.17.5.2, By-law 3.17.5.3');
+  assert.equal(entitlement(d, 'dodc', { how: 'compulsory', oversBowled: 20, balls: 0, revisedOvers: 20 }).cite, 'By-law 3.17.3');
+  assert.equal(entitlement(d, 'dodc', { how: 'allout', oversBowled: 12, balls: 4, revisedOvers: 20 }).cite, 'By-law 3.17.4');
 });
