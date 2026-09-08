@@ -207,3 +207,112 @@ test('example 14: over-rate report', () => {
   assert.equal(a.allowanceOvers, 3);
   assert.equal(a.short, 0);
 });
+
+import { replay } from '../rules.js';
+
+const setup = (format, grade, extra = {}) => ({ type: 'SETUP', season: CURRENT_SEASON, format, grade, day: 1, drinksInterval: 0, ...extra });
+
+test('replay: no events → setup phase', () => {
+  assert.equal(replay([], 800).phase, 'setup');
+});
+
+test('replay: Jika one-day started 2.00 pm → 28 overs, innings break projected 3.38 pm', () => {
+  const d = replay([setup('oneday', 'jika'), { type: 'START', t: 840 }], 840);
+  assert.equal(d.phase, 'play');
+  assert.equal(d.innings, 1);
+  assert.equal(d.lost[1], 90);
+  assert.equal(d.revisedOvers, 28);
+  assert.equal(d.expected, 0);
+  const brk = d.timetable.find(x => x.label.startsWith('Innings break'));
+  assert.equal(brk.t, 840 + 28 * 3.5);
+  assert.equal(d.next.label, '25 overs to side one by');
+  assert.equal(d.next.t, 930);
+});
+
+test('replay: Kelly one-day, rain 1.10–1.31 in first innings → 32 overs', () => {
+  const ev = [setup('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 }, { type: 'RESUME', t: 811 }];
+  const d = replay(ev, 820);
+  assert.equal(d.lost[1], 21);
+  assert.equal(d.revisedOvers, 32);
+  assert.equal(d.phase, 'play');
+  assert.equal(d.behind, 0);           // 40 min played at 1.10 → expected 11, entered 11
+});
+
+test('replay: innings closed compulsorily at 32 overs → 192 balls, break then second innings', () => {
+  const ev = [setup('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 }, { type: 'RESUME', t: 811 },
+    { type: 'INNINGS_END', t: 900, how: 'compulsory', oversBowled: 32, balls: 0, breakKind: 'innings' }];
+  let d = replay(ev, 905);
+  assert.equal(d.phase, 'break');
+  assert.equal(d.innings, 2);
+  assert.equal(d.entitlementBalls, 192);
+  assert.equal(d.next.label, 'Second innings starts');
+  assert.equal(d.next.t, 920);
+  ev.push({ type: 'BREAK_END', t: 920 });
+  d = replay(ev, 930);
+  assert.equal(d.phase, 'play');
+  assert.equal(d.expected, 2);         // second innings clock restarts: 10 min / 3.57
+});
+
+test('replay: 45 min rain in second innings → finish at hard stop 5.30', () => {
+  const ev = [setup('oneday', 'quick'), { type: 'START', t: 750 }, { type: 'INNINGS_END', t: 875, how: 'compulsory', oversBowled: 35, balls: 0, breakKind: 'innings' },
+    { type: 'BREAK_END', t: 895 }, { type: 'STOP', t: 940, reason: 'weather', oversBowled: 12, balls: 2 }, { type: 'RESUME', t: 985 }];
+  const d = replay(ev, 990);
+  assert.equal(d.lost[2], 45);
+  assert.equal(d.finish, 1050);
+  assert.ok(d.timetable.some(x => x.t === 1050 && /Extended finish/.test(x.label)));
+});
+
+test('replay: one-day not started by 2.46 pm → abandoned flag', () => {
+  const d = replay([setup('oneday', 'jika')], 886);
+  assert.equal(d.phase, 'notstarted');
+  assert.ok(d.flags.some(f => /abandoned/.test(f.text)));
+});
+
+test('replay: Kelly two-day, rain 1.10–2.00 with 11 overs → quota 65, extended stumps 5.30', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 790, reason: 'weather', oversBowled: 11, balls: 0 }, { type: 'RESUME', t: 840 }];
+  const d = replay(ev, 845);
+  assert.equal(d.lostToday, 50);
+  assert.equal(d.quota.quota, 65);
+  assert.equal(d.quota.extendedStumps, 1050);
+  assert.ok(d.timetable.some(x => x.label === 'Tea (20 min)' && x.t === 875));
+  assert.ok(d.timetable.some(x => x.label === 'Extended stumps' && x.t === 1050));
+});
+
+test('replay: two-day tea taken and deferred', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'TEA_DEFER', t: 875 }];
+  let d = replay(ev, 880);
+  assert.ok(d.timetable.some(x => x.label === 'Tea deferred, by' && x.t === 905));
+  ev.push({ type: 'BREAK_START', t: 890, kind: 'tea' }, { type: 'BREAK_END', t: 910 });
+  d = replay(ev, 915);
+  assert.equal(d.teaTaken, true);
+  assert.ok(!d.timetable.some(x => /^Tea/.test(x.label)));
+});
+
+test('replay: two-day day one not started by 3.01 pm → convert flag', () => {
+  const d = replay([setup('twoday', 'jika')], 901);
+  assert.ok(d.flags.some(f => /one-day/.test(f.text) && f.cite === 'By-law 3.12.5'));
+});
+
+test('replay: expected overs and behind', () => {
+  const ev = [setup('oneday', 'jika'), { type: 'START', t: 750 }];
+  assert.equal(replay(ev, 852).expected, 29);
+  ev.push({ type: 'BREAK_START', t: 852, kind: 'drinks' });
+  const d = replay(ev, 855);
+  assert.equal(d.expected, 29);        // break time does not count
+  ev.push({ type: 'BREAK_END', t: 857 }, { type: 'STOP', t: 870, reason: 'injury', oversBowled: 30, balls: 0 });
+  assert.equal(replay(ev, 871).behind, 2);   // 102 + 13 = 115 played min → expected 32, entered 30
+});
+
+test('replay: OVERS entry only records overs', () => {
+  const ev = [setup('oneday', 'jika'), { type: 'START', t: 750 }, { type: 'OVERS', t: 852, oversBowled: 27, balls: 3 }];
+  const d = replay(ev, 853);
+  assert.equal(d.phase, 'play');
+  assert.equal(d.behind, 2);
+});
+
+test('replay: stumps report', () => {
+  const ev = [setup('twoday', 'jika'), { type: 'START', t: 750 }, { type: 'STUMPS', t: 1050, oversBowled: 78, allowanceMin: 0 }];
+  const d = replay(ev, 1051);
+  assert.equal(d.phase, 'stumps');
+  assert.equal(d.stumpsReport.short, 2);
+});
