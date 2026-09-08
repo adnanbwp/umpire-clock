@@ -284,6 +284,10 @@ in daylight.
 3. Whether a second-innings stoppage under 30 minutes extends the finish by that much or
    not at all: the by-law only speaks to over 30 minutes; the app extends by the minutes
    lost, capped at the hard stop, and says so.
+4. The by-laws and the 2025-26 Umpires and Captains Handbook disagree on two one-day
+   cut-offs: 3.15.2.2 requires the no-game overs by 3.30 pm where the handbook (Section 1
+   §2) says 4.00 pm, and 3.15.2.4 abandons a match not started by 2.45 pm where the
+   handbook says 2.30 pm. The app uses the by-law; the quote shown says so.
 
-Confirm 1–3 with the umpires' association; the season table changes when the 2026-27
+Confirm 1–4 with the umpires' association; the season table changes when the 2026-27
 by-laws are published.

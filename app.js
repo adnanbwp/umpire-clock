@@ -1,5 +1,5 @@
 // app.js — renders replay() output and appends events. No rules here.
-import { SEASONS, CURRENT_SEASON, FORMATS, GRADES, getRow, QUOTES, minutesPerOver } from './seasons.js';
+import { SEASONS, CURRENT_SEASON, FORMATS, GRADES, getRow, quoteFor, minutesPerOver } from './seasons.js';
 import { replay, fmtTime, oversBalls, bowlerLimits, fieldingRestrictions } from './rules.js';
 
 const KEY = 'umpire-clock:events', ARCHIVE = 'umpire-clock:archive';
@@ -12,17 +12,6 @@ const fromHHMM = v => { const [h, m] = v.split(':').map(Number); return h * 60 +
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const cite = c => c ? `<button class="cite" data-cite="${esc(c)}">${esc(c)}</button>` : '';
 const mins = n => `${n} min`;
-
-// DODC (3.17) rows cite 'By-law 3.17.x'; QUOTES only holds the mirrored 3.15.x text.
-function quoteFor(k) {
-  if (QUOTES[k]) return QUOTES[k];
-  if (QUOTES['By-law ' + k]) return QUOTES['By-law ' + k];
-  if (k.startsWith('By-law 3.17.')) {
-    const mirrored = QUOTES[k.replace('3.17.', '3.15.')];
-    if (mirrored) return mirrored + ' (wording as in 3.15; 3.17 mirrors it for the designated one-day competition)';
-  }
-  return 'See the by-law.';
-}
 
 function save() { localStorage.setItem(KEY, JSON.stringify(events)); render(); }
 function dispatch(e) { events.push(e); save(); }
@@ -223,7 +212,7 @@ function render() {
 document.addEventListener('click', ev => {
   const c = ev.target.closest('.cite'); if (c) {
     const keys = c.dataset.cite.split(', ');
-    $('#cite-body').innerHTML = keys.map(k => `<p><b>${esc(k)}</b><br>${esc(quoteFor(k))}</p>`).join('');
+    $('#cite-body').innerHTML = keys.map(k => `<p><b>${esc(k)}</b><br>${esc(quoteFor(k) ?? 'See the by-law.')}</p>`).join('');
     $('#cite').showModal(); return; }
   const a = ev.target.closest('[data-action]'); if (a) { actions[a.dataset.action](replay(events, nowMin())); return; }
   const v = ev.target.closest('#nav button'); if (v) { view = v.dataset.view; render(); }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SEASONS, CURRENT_SEASON, getRow, minutesPerOver } from '../seasons.js';
+import { SEASONS, CURRENT_SEASON, getRow, minutesPerOver, quoteFor } from '../seasons.js';
 import { fmtTime, oversBalls, oneDayReduction, noStartAbandoned, minOversProjection, secondInningsFinish, entitlement, bowlerLimits, fieldingRestrictions, twoDayQuota, teaDecision, expectedOvers, overRate } from '../rules.js';
 
 test('season table: one-day Jika row matches by-law 3.15', () => {
@@ -32,8 +32,21 @@ test('minutes per over = playing window / overs', () => {
 });
 
 test('every row and every quote carries a citation', () => {
+  const resolves = c => { for (const k of c.split(', ')) assert.ok(quoteFor(k), `no quote for ${k}`); };
   for (const fmt of Object.values(SEASONS[CURRENT_SEASON].rows))
-    for (const row of Object.values(fmt)) assert.match(row.cite, /3\.1[567]/);
+    for (const row of Object.values(fmt)) { assert.match(row.cite, /3\.1[567]/); resolves(row.cite); }
+  const jika = getRow(CURRENT_SEASON, 'oneday', 'jika'), dodc = getRow(CURRENT_SEASON, 'dodc', 'other');
+  const kelly = getRow(CURRENT_SEASON, 'twoday', 'quick');
+  resolves(oneDayReduction(jika, 125).cite);
+  resolves(oneDayReduction(dodc, 125).cite);
+  resolves(secondInningsFinish(dodc, 45).cite);
+  resolves(twoDayQuota(kelly, { lostToday: 50, resumeTime: 840, oversBowledAtStop: 11, teaTaken: false }).cite);
+  resolves(twoDayQuota(kelly, { lostToday: 20, resumeTime: 800, oversBowledAtStop: 5, teaTaken: false }).cite);
+  for (const args of [{ t: 865, teaTaken: false, dayStart: 750 }, { t: 830, teaTaken: false, dayStart: 750 },
+    { t: 865, teaTaken: false, dayStart: 870 }, { t: 900, teaTaken: true, dayStart: 750 }]) resolves(teaDecision(kelly, args).cite);
+  resolves(overRate(kelly, { quota: 70, oversBowled: 68, allowanceMin: 7 }).cite);
+  resolves(bowlerLimits(28).cite);
+  resolves(fieldingRestrictions(28).cite);
 });
 
 test('fmtTime', () => {
