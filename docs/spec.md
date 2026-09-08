@@ -106,8 +106,8 @@ below and a `cite` for each. 2025-26 values:
 | Two-day | Quick/Kelly | 12.30 | 5.00 | 70 | — | 2.35 | 10 | 5.30 | — | 3.00 | — | 3.5 | — | same |
 | Two-day | All other grades | 12.30 | 4.45 | 65 | — | 2.30 | 10 | 5.15 | — | 3.00 | — | 3.5 | — | same |
 
-Derived per row: **minutes per over** = (stumps − start − tea or innings break) / overs.
-Jika 280/80 = 3.50; Quick/Kelly one-day 250/70 = 3.57; two-day 70-over 250/70 = 3.57;
+Derived per row: **minutes per over** = (stumps − start − tea or innings break) / overs bowled
+in that window (both sides in a one-day match, the day's quota in a two-day). Jika 280/80 = 3.50; Quick/Kelly one-day 250/70 = 3.57; two-day 70-over 250/70 = 3.57;
 65-over 235/65 = 3.62. Tea in a one-day match is the 20-minute innings break (3.15.1); the
 table's tea time is where the first innings lands at the scheduled rate.
 
