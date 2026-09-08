@@ -1,21 +1,27 @@
 # Umpire Clock
 
-Time-and-overs arithmetic for NMCA senior men's cricket, for the umpire's phone. Delayed
-starts, stoppages, two-day quota, tea, second-side entitlement, over rate. Offline, no
-accounts, nothing leaves the phone.
+A small web app for the umpire's phone that does the time and overs arithmetic in NMCA
+senior men's cricket: what a delayed start does to the overs, what a rain break does to a
+two-day quota, when tea falls, how many balls the second side gets, and whether the over
+rate is behind. It works with no signal once it has loaded, it has no accounts, and nothing
+you enter leaves the phone.
 
-Every number on screen is tappable and shows the by-law it came from. Season constants live
-in `seasons.js`; the 2025-26 by-laws are the current set.
+Tap any number on screen and it shows the by-law it came from. The season's constants live
+in `seasons.js`; at the moment they are the 2025-26 by-laws.
 
-**Install (Android):** open the page in Chrome → menu → Add to Home screen. It works with no
-signal after the first load.
+To install on Android, open the page in Chrome, open the menu and choose Add to Home
+screen. After that first load it runs without a connection.
 
-**Not a rulebook.** Three points are the app's reading where the by-laws are silent; see
-`docs/spec.md` §7.
+This is not a rulebook. In four places the by-laws are silent or the handbook disagrees
+with them, and the app applies one reading. Those four are listed in `docs/spec.md`
+section 7. If you umpire in the NMCA, check them against what the umpires' association
+says before you rely on the app in a match.
 
-Develop: `npm test`, `npm run serve` then open http://localhost:8080/.
+To work on it: `npm test` runs the rule tests, and `npm run serve` serves the page at
+http://localhost:8080/.
 
 ## Maintenance
 
-Changing anything in `seasons.js` requires bumping VERSION in `sw.js`, or installed phones keep
-the old numbers. Check the NMCA rules page before round one each season.
+If you change anything in `seasons.js`, bump VERSION in `sw.js` as well. Installed phones
+keep the old files until that string changes. Check the NMCA rules page for the new season's
+by-laws before round one each year.
