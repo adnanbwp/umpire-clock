@@ -55,3 +55,35 @@ export function fieldingRestrictions(overs) {
   const table = { 40: [[1, 10, 3], [11, 30, 4], [31, 40, 5]], 35: [[1, 8, 3], [9, 27, 4], [28, 35, 5]] }[overs];
   return { blocks: table ? table.map(([from, to, out]) => ({ from, to, out })) : null, cite: 'By-law 3.15.12' };
 }
+
+// 3.16.2.2: up to 30 minutes is absorbed by extending stumps; beyond that the day's quota is
+// recalculated at one over per 3.5 minutes of time remaining, nearest (handbook table), capped.
+// Untaken tea is deducted from time remaining (spec §7.1, an interpretation).
+export function twoDayQuota(row, { lostToday, resumeTime, oversBowledAtStop, teaTaken }) {
+  const extendedStumps = row.stumps + Math.min(lostToday, row.extension);
+  if (lostToday <= row.extension)
+    return { extendedStumps, quota: row.overs, remaining: null, teaDeduction: 0, cite: 'By-law 3.16.2.2.1, By-law 3.16.2.2.6' };
+  const teaDeduction = teaTaken ? 0 : row.teaLen;
+  const remaining = extendedStumps - resumeTime - teaDeduction;
+  const quota = Math.min(row.overs, oversBowledAtStop + Math.round(remaining / row.lostMinPerOver));
+  return { extendedStumps, quota, remaining, teaDeduction, cite: 'By-law 3.16.2.2.1, By-law 3.16.2.2.2, By-law 3.16.2.2.3, Handbook S1 §3, Interpretation' };
+}
+
+// 3.16.1: tea rules for a two-day day.
+export function teaDecision(row, { t, teaTaken, dayStart }) {
+  if (dayStart >= 870) return { tea: 'none', cite: 'By-law 3.16.1.4' };
+  if (teaTaken) return { tea: 'taken', cite: 'By-law 3.16.1.1' };
+  if (Math.abs(t - row.tea) <= 30) return { tea: 'now', cite: 'By-law 3.16.1.2' };
+  return { tea: 'scheduled', cite: 'By-law 3.16.1.1' };
+}
+
+// "Should be at over N": elapsed playing minutes at the format's scheduled rate.
+export function expectedOvers(row, elapsedPlayingMin) {
+  return Math.floor(elapsedPlayingMin / minutesPerOver(row) + 1e-9);
+}
+
+// Handbook S1 §3: overs short at the finish after allowances.
+export function overRate(row, { quota, oversBowled, allowanceMin = 0 }) {
+  const allowanceOvers = Math.round(allowanceMin / minutesPerOver(row));
+  return { allowanceOvers, short: Math.max(0, quota - oversBowled - allowanceOvers), cite: 'Handbook S1 §3' };
+}

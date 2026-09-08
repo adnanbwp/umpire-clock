@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SEASONS, CURRENT_SEASON, getRow, minutesPerOver } from '../seasons.js';
-import { fmtTime, oversBalls, oneDayReduction, noStartAbandoned, minOversProjection, secondInningsFinish, entitlement, bowlerLimits, fieldingRestrictions } from '../rules.js';
+import { fmtTime, oversBalls, oneDayReduction, noStartAbandoned, minOversProjection, secondInningsFinish, entitlement, bowlerLimits, fieldingRestrictions, twoDayQuota, teaDecision, expectedOvers, overRate } from '../rules.js';
 
 test('season table: one-day Jika row matches by-law 3.15', () => {
   const r = getRow(CURRENT_SEASON, 'oneday', 'jika');
@@ -152,4 +152,58 @@ test('DODC rows cite 3.17 for finish and entitlement', () => {
   assert.equal(secondInningsFinish(d, 45).cite, 'By-law 3.17.5.2, By-law 3.17.5.3');
   assert.equal(entitlement(d, 'dodc', { how: 'compulsory', oversBowled: 20, balls: 0, revisedOvers: 20 }).cite, 'By-law 3.17.3');
   assert.equal(entitlement(d, 'dodc', { how: 'allout', oversBowled: 12, balls: 4, revisedOvers: 20 }).cite, 'By-law 3.17.4');
+});
+
+test('example 8: Kelly two-day, 50 min lost, 11 overs at the stop → quota 65', () => {
+  const t = getRow(CURRENT_SEASON, 'twoday', 'quick');
+  const q = twoDayQuota(t, { lostToday: 50, resumeTime: 840, oversBowledAtStop: 11, teaTaken: false });
+  assert.equal(q.extendedStumps, 1050);
+  assert.equal(q.remaining, 190);
+  assert.equal(q.teaDeduction, 20);
+  assert.equal(q.quota, 65);
+  assert.match(q.cite, /3\.16\.2\.2\.2/);
+});
+
+test('example 9: 25 min lost → stumps 5.25, full quota', () => {
+  const q = twoDayQuota(getRow(CURRENT_SEASON, 'twoday', 'quick'), { lostToday: 25, resumeTime: 800, oversBowledAtStop: 5, teaTaken: false });
+  assert.equal(q.extendedStumps, 1045);
+  assert.equal(q.quota, 70);
+  assert.match(q.cite, /3\.16\.2\.2\.6/);
+});
+
+test('two-day quota is capped and tea deduction drops once tea is taken', () => {
+  const t = getRow(CURRENT_SEASON, 'twoday', 'jika');
+  assert.equal(twoDayQuota(t, { lostToday: 31, resumeTime: 781, oversBowledAtStop: 0, teaTaken: false }).quota, 80);
+  assert.equal(twoDayQuota(t, { lostToday: 60, resumeTime: 960, oversBowledAtStop: 40, teaTaken: true }).remaining, 1080 - 960);
+});
+
+test('example 16: handbook time-remaining table = round(min / 3.5)', () => {
+  // The handbook lists 30-33 → 9, 34-36 → 10 … 279-281 → 80.
+  for (let n = 9; n <= 80; n++) {
+    const lo = Math.ceil((n - 0.5) * 3.5), hi = Math.ceil((n + 0.5) * 3.5) - 1;
+    for (let m = lo; m <= hi; m++) assert.equal(Math.round(m / 3.5), n, `${m} min`);
+  }
+  assert.equal(Math.round(30 / 3.5), 9); assert.equal(Math.round(33 / 3.5), 9);
+  assert.equal(Math.round(34 / 3.5), 10); assert.equal(Math.round(281 / 3.5), 80);
+});
+
+test('examples 11, 12: tea', () => {
+  const t = getRow(CURRENT_SEASON, 'twoday', 'quick');
+  assert.equal(teaDecision(t, { t: 865, teaTaken: false, dayStart: 750 }).tea, 'now');       // 2.25, tea 2.35
+  assert.equal(teaDecision(t, { t: 830, teaTaken: false, dayStart: 750 }).tea, 'scheduled'); // 1.50
+  assert.equal(teaDecision(t, { t: 865, teaTaken: false, dayStart: 870 }).tea, 'none');      // start 2.30
+  assert.equal(teaDecision(t, { t: 900, teaTaken: true, dayStart: 750 }).tea, 'taken');
+});
+
+test('example 13: Jika one-day at 2.12 pm, no stoppages → expected over 29', () => {
+  assert.equal(expectedOvers(getRow(CURRENT_SEASON, 'oneday', 'jika'), 102), 29);
+  assert.equal(expectedOvers(getRow(CURRENT_SEASON, 'twoday', 'other'), 235), 65);
+});
+
+test('example 14: over-rate report', () => {
+  const j = getRow(CURRENT_SEASON, 'twoday', 'jika');
+  assert.equal(overRate(j, { quota: 80, oversBowled: 78, allowanceMin: 0 }).short, 2);
+  const a = overRate(j, { quota: 80, oversBowled: 78, allowanceMin: 10 });
+  assert.equal(a.allowanceOvers, 3);
+  assert.equal(a.short, 0);
 });
