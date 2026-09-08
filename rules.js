@@ -108,10 +108,12 @@ function applyEvent(s, e) {
       elapsedInnings: playedMinutes(s.segments, s.innings, e.t), elapsedDay: playedMinutes(s.segments, null, e.t) });
   };
   // Book an open stoppage's minutes up to this event, if there is one. 3.15.2.1 / 3.16.2.2.
-  const settleStop = () => {
+  // `continues` says play goes on after the stoppage, which makes it the two-day recalculation
+  // point (3.16.2.2.2). Stumps and an abandonment end the day instead, so they pass false.
+  const settleStop = continues => {
     const seg = s.segments.at(-1);
     if (!seg || seg.kind !== 'stop' || seg.to != null) return null;
-    seg.to = e.t;
+    seg.to = e.t; seg.resumed = continues;
     const lost = e.t - seg.from;
     s.lostByInnings[s.innings] = (s.lostByInnings[s.innings] || 0) + lost;
     // 3.15.5.2 extends the second innings for time lost "by bad weather" only.
@@ -135,18 +137,16 @@ function applyEvent(s, e) {
       const oversAtStop = e.oversBowled ?? expectedOvers(s.row, playedMinutes(s.segments, s.format === 'twoday' ? null : s.innings, e.t));
       open('stop', { reason: e.reason, oversBowled: oversAtStop });
       s.phase = 'stoppage'; break;
-    case 'RESUME': {
-      const seg = settleStop(); if (!seg) break;
-      seg.resumed = true;          // only a resumption completes a stoppage: 3.16.2.2 recalculates from it
-      open('play'); s.phase = 'play'; break; }
+    case 'RESUME':
+      if (!settleStop(true)) break; open('play'); s.phase = 'play'; break;
     case 'INNINGS_END':
-      settleStop(); close(); recordOvers();
+      settleStop(true); close(); recordOvers();
       s.inningsEnds.push({ t: e.t, innings: s.innings, how: e.how, overs: e.oversBowled, balls: e.balls || 0 });
       s.innings += 1; if (!(s.innings in s.lostByInnings)) s.lostByInnings[s.innings] = 0;
       if (e.breakKind === 'tea') s.teaTaken = true;
       open('break', { breakKind: e.breakKind || 'innings' }); s.phase = 'break'; break;
     case 'BREAK_START':
-      settleStop(); close(); if (e.kind === 'tea') s.teaTaken = true; open('break', { breakKind: e.kind }); s.phase = 'break'; break;
+      settleStop(true); close(); if (e.kind === 'tea') s.teaTaken = true; open('break', { breakKind: e.kind }); s.phase = 'break'; break;
     case 'BREAK_END':
       close(); open('play'); s.phase = 'play'; break;
     case 'TEA_DEFER':
@@ -156,9 +156,9 @@ function applyEvent(s, e) {
     case 'STUMPS': {
       const pending = s.segments.at(-1);
       if (pending && pending.kind === 'stop' && pending.to == null) s.stumpsDuringStop = true;
-      settleStop(); close(); s.stumps = { t: e.t, oversBowled: e.oversBowled, allowanceMin: e.allowanceMin || 0 }; s.phase = 'stumps'; break; }
+      settleStop(false); close(); s.stumps = { t: e.t, oversBowled: e.oversBowled, allowanceMin: e.allowanceMin || 0 }; s.phase = 'stumps'; break; }
     case 'ABANDON':
-      settleStop(); close(); s.abandoned = true; s.abandonReason = e.reason || ''; s.phase = 'abandoned'; break;
+      settleStop(false); close(); s.abandoned = true; s.abandonReason = e.reason || ''; s.phase = 'abandoned'; break;
     case 'NOTE':
       s.notes.push({ t: e.t, text: e.text }); break;
   }

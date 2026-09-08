@@ -447,3 +447,24 @@ test('A8: an innings ending on day two has no fixed entitlement', () => {
   assert.equal(d.entitlementCite, 'By-law 3.16.5');
   assert.match(d.entitlementNote, /carried into day two/);
 });
+
+test('regression: a stoppage ended by an innings close is the recalculation point', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 900, reason: 'weather', oversBowled: 40, balls: 0 },
+    { type: 'INNINGS_END', t: 1000, how: 'allout', oversBowled: 40, balls: 0, breakKind: 'innings' }];
+  const d = replay(ev, 1005);
+  // lost 100 → extended stumps 5.30; remaining 1050 − 1000 − 20 tea = 30 → 9; quota 40 + 9 = 49
+  assert.equal(d.quota.quota, 49);
+});
+
+test('regression: a stoppage ended by tea is the recalculation point', () => {
+  const ev = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 860, reason: 'weather', oversBowled: 30, balls: 0 },
+    { type: 'BREAK_START', t: 875, kind: 'tea' }, { type: 'BREAK_END', t: 895 }];
+  const d = replay(ev, 900);
+  // lost 15 ≤ 30 → full quota 70, extended stumps 5.15 pm
+  assert.equal(d.quota.quota, 70);
+  assert.equal(d.quota.extendedStumps, 1035);
+  const ev2 = [setup('twoday', 'quick'), { type: 'START', t: 750 }, { type: 'STOP', t: 820, reason: 'weather', oversBowled: 19, balls: 0 },
+    { type: 'BREAK_START', t: 875, kind: 'tea' }, { type: 'BREAK_END', t: 895 }];
+  // lost 55 → extended stumps 5.30; settled at 875 with tea starting then (tea at or before resume → no deduction): remaining 1050 − 875 = 175 → 50; quota min(70, 19 + 50) = 69
+  assert.equal(replay(ev2, 900).quota.quota, 69);
+});
