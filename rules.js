@@ -9,10 +9,12 @@ export function fmtTime(m) {
 export const oversBalls = balls => `${Math.floor(balls / 6)}.${balls % 6}`;
 
 // 3.15.2.1 / 3.17.2.1: one over off for each full seven minutes lost (handbook table rounds down).
+// By-law 3.17 mirrors 3.15 for designated one-day matches.
 export function oneDayReduction(row, lostMin) {
   const overs = Math.max(0, row.overs - Math.floor(lostMin / row.lostMinPerOver));
   const compulsoryAt = lostMin > 120 ? row.noGame : null;
-  return { overs, compulsoryAt, cite: compulsoryAt ? 'By-law 3.15.2.1, By-law 3.15.2.2' : 'By-law 3.15.2.1' };
+  const cite = compulsoryAt ? `By-law ${row.bylaw}.2.1, By-law ${row.bylaw}.2.2` : `By-law ${row.bylaw}.2.1`;
+  return { overs, compulsoryAt, cite };
 }
 
 // 3.15.2.4 / 3.17.2.4: "not started by 2.45pm" — starting at 2.45 is still in time.
@@ -23,5 +25,5 @@ export function noStartAbandoned(row, now, started) {
 // 3.15.2.2 / 3.17.2.2: will the no-game overs be bowled to side one by 3.30 pm at the scheduled rate?
 export function minOversProjection(row, now, oversBowledNow) {
   const reachAt = now + Math.max(0, row.noGame - oversBowledNow) * minutesPerOver(row);
-  return { reachAt, atRisk: reachAt > row.minOversBy, cite: 'By-law 3.15.2.2' };
+  return { reachAt, atRisk: reachAt > row.minOversBy, cite: `By-law ${row.bylaw}.2.2` };
 }

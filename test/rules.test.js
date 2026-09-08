@@ -90,3 +90,13 @@ test('example 1 continued: 25 overs from 2.00 pm at 3.5 min land 3.27 pm, not at
   assert.equal(minOversProjection(j, 850, 0).atRisk, true); // from 2.10 pm it misses 3.30
   assert.equal(minOversProjection(j, 925, 24).atRisk, false);
 });
+
+test('DODC rows cite by-law 3.17, not 3.15', () => {
+  const d = getRow(CURRENT_SEASON, 'dodc', 'other');
+  assert.equal(d.bylaw, '3.17');
+  assert.equal(oneDayReduction(d, 0).cite, 'By-law 3.17.2.1');
+  assert.equal(oneDayReduction(d, 125).cite, 'By-law 3.17.2.1, By-law 3.17.2.2');
+  assert.equal(minOversProjection(d, 800, 0).cite, 'By-law 3.17.2.2');
+  assert.equal(getRow(CURRENT_SEASON, 'oneday', 'jika').bylaw, '3.15');
+  assert.equal(getRow(CURRENT_SEASON, 'twoday', 'jika').bylaw, '3.16');
+});

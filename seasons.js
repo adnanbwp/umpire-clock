@@ -9,29 +9,29 @@ const ONEDAY_CITE = 'By-law 3.15 table, 3.15.1, 3.15.2, 3.15.5, 3.15.9';
 const DODC_CITE = 'By-law 3.17 table, 3.17.1, 3.17.2, 3.17.5, 3.17.9';
 const TWODAY_CITE = 'By-law 3.16 table, 3.16.1, 3.16.2.2, 3.12.5';
 
-const oneDay = (stumps, overs, noGame, tea, hardStop, noStartBy, cite) =>
-  ({ start: 750, stumps, overs, noGame, tea, inningsBreak: 20, hardStop, noStartBy, minOversBy: 930, lostMinPerOver: 7, cite });
-const twoDay = (stumps, overs, tea) =>
-  ({ start: 750, stumps, overs, tea, teaLen: 20, inningsInterval: 10, extension: 30, lostMinPerOver: 3.5, day1NoStartBy: 900, cite: TWODAY_CITE });
+const oneDay = (stumps, overs, noGame, tea, hardStop, noStartBy, bylaw, cite) =>
+  ({ start: 750, stumps, overs, noGame, tea, inningsBreak: 20, hardStop, noStartBy, minOversBy: 930, lostMinPerOver: 7, bylaw, cite });
+const twoDay = (stumps, overs, tea, bylaw) =>
+  ({ start: 750, stumps, overs, tea, teaLen: 20, inningsInterval: 10, extension: 30, lostMinPerOver: 3.5, day1NoStartBy: 900, bylaw, cite: TWODAY_CITE });
 
 export const SEASONS = {
   '2025-26': {
     label: '2025-26 by-laws (2026-27 not yet published)',
     rows: {
       oneday: {
-        jika:  oneDay(1050, 40, 25, 890, 1080, 885, ONEDAY_CITE),
-        quick: oneDay(1020, 35, 20, 875, 1050, 885, ONEDAY_CITE),
-        other: oneDay(1020, 35, 20, 875, 1050, 885, ONEDAY_CITE),
+        jika:  oneDay(1050, 40, 25, 890, 1080, 885, '3.15', ONEDAY_CITE),
+        quick: oneDay(1020, 35, 20, 875, 1050, 885, '3.15', ONEDAY_CITE),
+        other: oneDay(1020, 35, 20, 875, 1050, 885, '3.15', ONEDAY_CITE),
       },
       dodc: {
-        jika:  oneDay(1020, 35, 20, 875, 1050, 855, DODC_CITE),
-        quick: oneDay(1020, 35, 20, 875, 1050, 855, DODC_CITE),
-        other: oneDay(1020, 35, 20, 875, 1050, 855, DODC_CITE),
+        jika:  oneDay(1020, 35, 20, 875, 1050, 855, '3.17', DODC_CITE),
+        quick: oneDay(1020, 35, 20, 875, 1050, 855, '3.17', DODC_CITE),
+        other: oneDay(1020, 35, 20, 875, 1050, 855, '3.17', DODC_CITE),
       },
       twoday: {
-        jika:  twoDay(1050, 80, 890),
-        quick: twoDay(1020, 70, 875),
-        other: twoDay(1005, 65, 870),
+        jika:  twoDay(1050, 80, 890, '3.16'),
+        quick: twoDay(1020, 70, 875, '3.16'),
+        other: twoDay(1005, 65, 870, '3.16'),
       },
     },
   },
