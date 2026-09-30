@@ -21,7 +21,17 @@ says before you rely on the app in a match.
 To work on it: `npm test` runs the rule tests, and `npm run serve` serves the page at
 http://localhost:8080/.
 
+## Card
+
+The Card tab is an offline cheat card: this week's games from `games.js` (teams, venue,
+forecast snapshot, alerts) on top of the format card from `cards.js` (times, cut-offs, the
+lost-time table, calls, conduct, after-match tasks). The card's numbers come from the same
+season rows and rules as the clock. `games.js` is public on the site, which means your
+appointments are public too. That is deliberate for now.
+
 ## Maintenance
+
+Each week, replace the entries in `games.js` and bump VERSION in `sw.js`.
 
 If you change anything in `seasons.js`, bump VERSION in `sw.js` as well. Installed phones
 keep the old files until that string changes. Check the NMCA rules page for the new season's

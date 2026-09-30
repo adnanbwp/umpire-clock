@@ -1,6 +1,8 @@
 // app.js — renders replay() output and appends events. No rules here.
 import { SEASONS, CURRENT_SEASON, FORMATS, GRADES, getRow, quoteFor, minutesPerOver } from './seasons.js';
 import { replay, fmtTime, oversBalls, bowlerLimits, fieldingRestrictions } from './rules.js';
+import { formatCard } from './cards.js';
+import { GAMES, pickGame } from './games.js';
 
 const KEY = 'umpire-clock:events', ARCHIVE = 'umpire-clock:archive';
 let events;
@@ -218,11 +220,54 @@ function renderLog(d) {
     $('#cite-body').innerHTML = `<pre>${esc(logText(a.events, dd))}</pre>`; $('#cite').showModal(); };
 }
 
+// ---------- card (offline cheat card: this week's game, or any format) ----------
+const CARD_FORMATS = [['oneday', 'jika'], ['oneday', 'quick'], ['oneday', 'other'], ['dodc', 'other'], ['twoday', 'jika'], ['twoday', 'quick'], ['twoday', 'other'], ['wt20', 'women'], ['wod', 'women']];
+const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+let cardSel = null; // 'g:<date>' or 'f:<format>/<grade>'
+const dayName = iso => new Date(iso + 'T12:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+const ampm = v => esc(v).replace(/ (am|pm)$/, '<i>$1</i>');
+const li = x => `<li><span class="ico">${x.icon}</span><span>${esc(x.text)} ${cite(x.cite)}</span></li>`;
+const sect = (icon, title, body, open = false) => `<details class="card" ${open ? 'open' : ''}><summary><span class="ico">${icon}</span>${esc(title)}</summary>${body}</details>`;
+
+function renderCard(d) {
+  if (!cardSel) { const g = pickGame(GAMES, localDate()); cardSel = g ? `g:${g.date}` : 'f:oneday/quick'; }
+  const game = cardSel.startsWith('g:') ? GAMES.find(g => g.date === cardSel.slice(2)) : null;
+  const [format, grade] = game ? [game.format, game.grade] : cardSel.slice(2).split('/');
+  const c = formatCard(format, grade), w = game?.weather;
+  const opt = (v, l) => `<option value="${v}" ${v === cardSel ? 'selected' : ''}>${esc(l)}</option>`;
+  const live = d.phase !== 'setup' && d.phase !== 'notstarted';
+  $('#app').innerHTML = `
+    <select id="cardsel" aria-label="Card"><optgroup label="Games">${GAMES.map(g => opt(`g:${g.date}`, `${dayName(g.date)} · ${g.gradeName}`)).join('')}</optgroup>
+      <optgroup label="Formats">${CARD_FORMATS.map(([f, gr]) => opt(`f:${f}/${gr}`, `${FORMATS[f]} · ${GRADES[gr]}`)).join('')}</optgroup></select>
+    ${game ? `<div class="card hero">
+      <div class="muted">${dayName(game.date)} · Round ${game.round} · ${esc(game.gradeName)}</div>
+      <h1>${esc(game.home)} <span class="muted">v</span> ${esc(game.away)}</h1>
+      <p>📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.venue)}">${esc(game.venue)}</a> · <b>${esc(game.ground)}</b></p>
+      <div class="tiles">
+        <div class="tile"><span class="ico">${w.icon}</span><b>${esc(w.rain)}</b><small>rain chance</small></div>
+        <div class="tile"><span class="ico">💨</span><b>${esc(w.gusts)}</b><small>gusts km/h</small></div>
+        <div class="tile"><span class="ico">🌡️</span><b>${esc(w.temp)}</b><small>UV ${esc(w.uv)}</small></div>
+      </div></div>
+      ${game.alerts.map(a => `<div class="flag ${a.level}"><span class="ico">${a.icon}</span> ${esc(a.text)}</div>`).join('')}` : `<div class="card"><h1>${esc(FORMATS[format])} · ${esc(GRADES[grade])}</h1></div>`}
+    <div class="tiles">${c.tiles.map(t => `<div class="tile"><span class="ico">${t.icon}</span><b>${ampm(t.big)}</b><small>${esc(t.label)}</small></div>`).join('')}</div>
+    <div class="card"><h2>🛑 Cut-offs</h2><ul class="icons">${c.cutoffs.map(li).join('')}</ul></div>
+    ${c.lost ? sect('⏳', 'Lost time, innings 1 (1 over per 7 min)', `<table class="lost"><tr><th>Min lost</th><th>Overs</th><th>Bowler</th></tr>${c.lost.map(r => `<tr class="${r.closed ? 'bad' : ''}"><td>${r.to == null ? `over ${r.from - 1}` : `${r.from}–${r.to}`}</td><td class="n">${r.overs}</td><td>${r.closed ? 'closed' : r.max}</td></tr>`).join('')}</table><p>${cite(`By-law ${c.row.bylaw}.2.1`)} ${cite(`By-law ${c.row.bylaw}.2.2`)}</p>`, true) : ''}
+    ${c.checkpoints ? sect('⏱️', 'Over-rate checkpoints', `<table class="lost"><tr><th>Over</th><th>Inn 1</th><th>Inn 2</th></tr>${c.checkpoints.map(k => `<tr><td class="n">${k.over}${k.drinks ? ' 🥤' : ''}</td><td>${fmtTime(k.one)}</td><td>${fmtTime(k.two)}</td></tr>`).join('')}</table>`) : ''}
+    ${w ? sect('🌦️', `Forecast (as of ${w.asOf})`, `<p>${w.icon} ${esc(w.summary)}</p><table class="lost"><tr><th></th><th>🌡️</th><th>🌧️</th><th>💨</th></tr>${w.hours.map(([h, t, r, g]) => `<tr><td>${h}</td><td>${t}°</td><td>${r}%</td><td>${g}</td></tr>`).join('')}</table><p>Recheck (needs signal): <a href="${w.bom}">BoM forecast</a> · <a href="https://www.bom.gov.au/products/IDR023.loop.shtml">rain radar</a></p><p>💵 Fee ${esc(game.fee)}</p>`) : ''}
+    ${c.sections.map(s => sect(s.icon, s.title, `<ul class="icons">${s.items.map(li).join('')}</ul>`)).join('')}
+    ${game && !live ? '<div class="row"><button id="usegame" class="primary">Set up the clock for this game</button></div>' : ''}
+    <p class="muted">2025-26 by-laws. Tap a clause for its words.</p>`;
+  $('#cardsel').onchange = ev => { cardSel = ev.target.value; renderCard(d); };
+  const u = $('#usegame'); if (u) u.onclick = () => {
+    events = [{ type: 'SETUP', season: CURRENT_SEASON, format: game.format, grade: game.grade, start: c.row.start, day: 1, drinks: true }];
+    view = 'status'; save(); };
+}
+
 // ---------- router ----------
 function render() {
   const d = replay(events, nowMin());
-  $('#nav').hidden = d.phase === 'setup';
   for (const b of document.querySelectorAll('#nav button')) b.toggleAttribute('aria-current', b.dataset.view === view);
+  if (view === 'card') return renderCard(d);
   if (d.phase === 'setup' || view === 'setup') return renderSetup(d);
   if (view === 'log') return renderLog(d);
   renderStatus(d);
