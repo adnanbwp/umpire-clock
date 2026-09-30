@@ -1,19 +1,28 @@
 // seasons.js — every by-law constant, with its citation. Minutes since midnight.
-// Source: NMCA Senior Playing By-Laws 2025-26 (kb/nmca-senior-playing-by-laws-2025-26.md).
+// Source: NMCA Senior Playing By-Laws 2025-26 (kb/nmca-senior-playing-by-laws-2025-26.md) and
+// Women's Playing By-Laws 2025-26 (kb/nmca-womens-playing-by-laws-2025-26.md).
 // Changing anything in this file requires bumping VERSION in sw.js, or installed phones keep the old numbers.
 export const CURRENT_SEASON = '2025-26';
 
-export const FORMATS = { oneday: 'One-day', dodc: 'Designated one-day', twoday: 'Two-day' };
-export const GRADES = { jika: 'Jika Shield', quick: 'Quick / Kelly Shield', other: 'All other grades' };
+// Women's T10 and The Hundred (5.16) are left out: the 2026-27 run sheet removes the T10 round for a
+// charity round (kb/nmca-umpires-meeting-run-sheet-2026-09-08.md), and no Hundred fixture is known.
+export const FORMATS = { oneday: 'One-day', dodc: 'Designated one-day', twoday: 'Two-day', wt20: "Women's T20", wod: "Women's one-day (30 overs)" };
+export const GRADES = { jika: 'Jika Shield', quick: 'Quick / Kelly Shield', other: 'All other grades',
+  women: 'All grades (Lorraine Ireland, Lenore Smith, Heather Baillie and lower)' };
 
 const ONEDAY_CITE = 'By-law 3.15 table, 3.15.1, 3.15.2, 3.15.5, 3.15.9';
 const DODC_CITE = 'By-law 3.17 table, 3.17.1, 3.17.2, 3.17.5, 3.17.9';
 const TWODAY_CITE = 'By-law 3.16 table, 3.16.1, 3.16.2.2, 3.12.5';
+const WT20_CITE = 'By-law 5.14 table, 5.14.1, 5.14.2.1, 5.14.2.2, 5.14.2.4, 5.14.5.2, 5.14.9';
+const WOD_CITE = 'By-law 5.15 table, 5.15.1, 5.15.2.1, 5.15.2.2, 5.15.2.4, 5.15.5.2, 5.15.9';
+// Clauses that differ between the men's and women's by-laws but not between formats.
+const MEN = { compulsoryLostMin: 120, notReadyCite: 'By-law 3.12.3', heatCite: 'By-law 3.23.2' };
+const WOMEN = { start: 540, lostMinPerOver: 7, notReadyCite: 'By-law 5.8.3', heatCite: 'By-law 5.13.2' };
 
 const oneDay = (stumps, overs, noGame, tea, hardStop, noStartBy, bylaw, cite) =>
-  ({ start: 750, stumps, overs, noGame, tea, inningsBreak: 20, hardStop, noStartBy, minOversBy: 930, lostMinPerOver: 7, bylaw, cite });
+  ({ start: 750, stumps, overs, noGame, tea, inningsBreak: 20, hardStop, noStartBy, minOversBy: 930, lostMinPerOver: 7, bylaw, cite, ...MEN });
 const twoDay = (stumps, overs, tea, bylaw) =>
-  ({ start: 750, stumps, overs, tea, teaLen: 20, inningsInterval: 10, extension: 30, lostMinPerOver: 3.5, day1NoStartBy: 900, bylaw, cite: TWODAY_CITE });
+  ({ start: 750, stumps, overs, tea, teaLen: 20, inningsInterval: 10, extension: 30, lostMinPerOver: 3.5, day1NoStartBy: 900, bylaw, cite: TWODAY_CITE, ...MEN });
 
 export const SEASONS = {
   '2025-26': {
@@ -34,6 +43,11 @@ export const SEASONS = {
         quick: twoDay(1020, 70, 875, '3.16'),
         other: twoDay(1005, 65, 870, '3.16'),
       },
+      // Women's timings are the same for every grade; only retirement scores differ (5.14.11 / 5.15.11).
+      // "Tea Break" 10.20 / 11.00 am is where side one's innings ends at the scheduled 4.00 min/over,
+      // so tea is the innings break (5.14.1 / 5.15.1), as in a men's one-day match.
+      wt20: { women: { ...WOMEN, stumps: 715, overs: 20, noGame: 10, tea: 620, inningsBreak: 15, hardStop: 735, noStartBy: 630, minOversBy: 705, compulsoryLostMin: 40, bylaw: '5.14', cite: WT20_CITE } },
+      wod:  { women: { ...WOMEN, stumps: 800, overs: 30, noGame: 15, tea: 660, inningsBreak: 20, hardStop: 810, noStartBy: 660, minOversBy: 710, compulsoryLostMin: 50, bylaw: '5.15', cite: WOD_CITE } },
     },
   },
 };
@@ -89,6 +103,29 @@ export const QUOTES = {
   'By-law 3.17 table': 'Designated one-day: all grades 12.30 pm start, 5.00 pm stumps, 35 overs a side, no game under 20, tea 2.35 pm.',
   'By-law 3.16.1': 'Two-day breaks: tea 20 minutes (3.16.1.1); a ten-minute interval between innings (3.16.1.2).',
   'By-law 3.16.1.1': 'Afternoon tea of 20 minutes shall be taken on each days play as near as possible to scheduled time either on the completion of an over or the fall of a wicket.',
+  // Women's Playing By-Laws, Section 5.
+  'By-law 5.8.3': 'A team, unable to commence the match 15 minutes after the scheduled start time, shall lose the match. The offending team shall pay both teams\' umpires\' fees for that day\'s play.',
+  'By-law 5.13.2': 'If there is no abandonment of play and the weather reaches 36 degrees at the Viewbank weather station after the commencement of play, the General Manager shall notify all Clubs that play shall cease immediately for a period of 20 minutes. If this stoppage is within 20 minutes of the scheduled morning tea break, then the morning tea break shall be taken. If play is allowed to recommence, actions which may assist in safe play include; Extra drink breaks (i.e. every 40 minutes and as needed) (5.13.2.1); An extension to the tea break of up to ten (10) minutes (5.13.2.2), and An extension to the change of innings breaks of up to five (5) minutes (5.13.2.3). Umpires are advised to extend the scheduled time of completion to allow for these extra breaks (5.13.2.4). In a women\'s match the tea break is the change of innings; the by-law lists both extensions and does not say which applies.',
+  'By-law 5.14 table': 'Women\'s 20/20, all grades: Start 9.00 a.m., Stumps 11:55am, Overs 20/20, No Game 10, Tea Break 10.20 a.m.',
+  'By-law 5.14.1': 'If the innings of the team batting first has not been previously completed, it shall be compulsorily closed at the end of the scheduled overs (20), at which time a 15-minute break shall be taken.',
+  'By-law 5.14.2.1': 'If the match commences late or time is lost during the innings of the side batting first the overs shall be reduced from 20 by one (1) over for each seven minutes of lost time.',
+  'By-law 5.14.2.2': 'For the team batting first, if the total time lost exceeds 40 minutes and the innings is not previously completed, then it shall be compulsorily closed on completion of 10 overs. If 10 overs have not been bowled to the side batting first (given the innings is not previously completed) by 11.45am then play shall be abandoned. The match is declared a draw. Over 40 minutes lost, the app shows 10 overs a side rather than the 5.14.2.1 reduction (Interpretation).',
+  'By-law 5.14.2.4': 'If a 20/20 match has not started by 10.30 am then play will be abandoned. The match is declared a draw.',
+  'By-law 5.14.3': 'The side batting second shall be entitled to bat only for the same number of balls bowled to the first side.',
+  'By-law 5.14.4': 'The side batting second shall be entitled to bat only twenty (20) overs. However, if lost time reduced the overs entitlement for the side batting first, then the side batting second shall be entitled to bat only for the same reduced number of balls.',
+  'By-law 5.14.5.2': 'Play has been delayed or interrupted for more than thirty (30) minutes by bad weather during the innings of the side batting second and the entitled overs have not been bowled by 12.15 pm, then play shall cease at the completion of the over in progress at 12.15 pm.',
+  'By-law 5.14.5.3': 'Play shall not resume after any interruption due to bad weather any time after 12.15 pm.',
+  'By-law 5.14.9': 'A bowler shall be restricted to a maximum of one fifth (20=4) of the scheduled overs in an innings. The women\'s by-laws have no table for reduced overs; the app spreads the remainder as table 3.15.12.5 does (Interpretation).',
+  'By-law 5.15 table': 'Women\'s One Day, all grades: Start 9.00 a.m., Stumps 1.20 p.m., Overs 30/30, No Game 15, Tea Break 11.00 a.m.',
+  'By-law 5.15.1': 'If the innings of the team batting first has not been previously completed, it shall be compulsorily closed at the end of the scheduled overs (30), at which time a 20-minute break shall be taken.',
+  'By-law 5.15.2.1': 'If the match commences late or time is lost during the innings of the side batting first the overs shall be reduced from 30 by one (1) over for each seven minutes of lost time.',
+  'By-law 5.15.2.2': 'For the team batting first, if the total time lost exceeds 50 minutes and the innings is not previously completed, then it shall be compulsorily closed on completion of 15 overs. If 15 overs have not been bowled to the side batting first (given the innings is not previously completed) by 11.50 am, then play shall be abandoned. The match is declared a draw. Over 50 minutes lost, the app shows 15 overs a side rather than the 5.15.2.1 reduction (Interpretation).',
+  'By-law 5.15.2.4': 'If a 30/30 match has not started by 11.00 am then play will be abandoned. The match is declared a draw.',
+  'By-law 5.15.3': 'The side batting second shall be entitled to bat only for the same number of balls bowled to the first side.',
+  'By-law 5.15.4': 'The side batting second shall be entitled to bat only thirty (30) overs. However, if lost time reduced the overs entitlement for the side batting first, then the side batting second shall be entitled to bat only for the same reduced number of balls.',
+  'By-law 5.15.5.2': 'Play has been delayed or interrupted for more than thirty (30) minutes by bad weather during the innings of the side batting second and the entitled overs have not been bowled by 1.30pm, then play shall cease at the completion of the over in progress at 1.30 pm.',
+  'By-law 5.15.5.3': 'Play shall not resume after any interruption due to bad weather any time after 1.30 pm.',
+  'By-law 5.15.9': 'A bowler shall be restricted to a maximum of one fifth (30=6) of the scheduled overs in an innings. The women\'s by-laws have no table for reduced overs; the app spreads the remainder as table 3.15.12.5 does (Interpretation).',
 };
 
 // Operative words for a cite key. Keys arrive bare ('3.15.2.1') or prefixed; DODC rows cite

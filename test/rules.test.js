@@ -34,7 +34,7 @@ test('minutes per over = playing window / overs', () => {
 test('every row and every quote carries a citation', () => {
   const resolves = c => { for (const k of c.split(', ')) assert.ok(quoteFor(k), `no quote for ${k}`); };
   for (const fmt of Object.values(SEASONS[CURRENT_SEASON].rows))
-    for (const row of Object.values(fmt)) { assert.match(row.cite, /3\.1[567]/); resolves(row.cite); }
+    for (const row of Object.values(fmt)) { assert.match(row.cite, /3\.1[567]|5\.1[45]/); resolves(row.cite); }
   const jika = getRow(CURRENT_SEASON, 'oneday', 'jika'), dodc = getRow(CURRENT_SEASON, 'dodc', 'other');
   const kelly = getRow(CURRENT_SEASON, 'twoday', 'quick');
   resolves(oneDayReduction(jika, 125).cite);
@@ -524,4 +524,104 @@ test('drinks: off at setup → nothing scheduled', () => {
   const d = replay([setupD('oneday', 'quick', false), { type: 'START', t: 750 }], 760);
   assert.equal(d.drinksAt, null);
   assert.equal(drinksRows(d).length, 0);
+});
+
+// Women's T20 (5.14) and one-day 30-over (5.15), 2025-26 women's by-laws.
+const wt20 = getRow(CURRENT_SEASON, 'wt20', 'women'), wod = getRow(CURRENT_SEASON, 'wod', 'women');
+
+test('women: season rows match by-law 5.14 and 5.15 tables', () => {
+  assert.deepEqual([wt20.start, wt20.stumps, wt20.overs, wt20.noGame, wt20.tea, wt20.inningsBreak], [540, 715, 20, 10, 620, 15]);
+  assert.deepEqual([wt20.compulsoryLostMin, wt20.minOversBy, wt20.noStartBy, wt20.hardStop], [40, 705, 630, 735]);
+  assert.deepEqual([wod.start, wod.stumps, wod.overs, wod.noGame, wod.tea, wod.inningsBreak], [540, 800, 30, 15, 660, 20]);
+  assert.deepEqual([wod.compulsoryLostMin, wod.minOversBy, wod.noStartBy, wod.hardStop], [50, 710, 660, 810]);
+  // tea is where side one's innings ends at the scheduled rate: 9.00 + 20 x 4 = 10.20, 9.00 + 30 x 4 = 11.00
+  assert.equal(minutesPerOver(wt20), 4);
+  assert.equal(minutesPerOver(wod), 4);
+  assert.equal(wt20.start + wt20.overs * minutesPerOver(wt20), wt20.tea);
+  assert.equal(wod.start + wod.overs * minutesPerOver(wod), wod.tea);
+  for (const r of [wt20, wod]) for (const k of r.cite.split(', ').concat(r.notReadyCite, r.heatCite)) assert.ok(quoteFor(k), `no quote for ${k}`);
+});
+
+test('women: one over off per seven minutes lost', () => {
+  assert.equal(oneDayReduction(wt20, 6).overs, 20);
+  assert.equal(oneDayReduction(wt20, 7).overs, 19);
+  assert.equal(oneDayReduction(wt20, 40).overs, 15);
+  assert.equal(oneDayReduction(wod, 50).overs, 23);
+  assert.equal(oneDayReduction(wt20, 0).cite, 'By-law 5.14.2.1');
+  assert.equal(oneDayReduction(wod, 0).cite, 'By-law 5.15.2.1');
+});
+
+test('women: compulsory closure past 40 / 50 minutes lost', () => {
+  assert.equal(oneDayReduction(wt20, 40).compulsoryAt, null);
+  const t = oneDayReduction(wt20, 41);
+  assert.equal(t.compulsoryAt, 10);
+  assert.equal(t.overs, 10);          // 5.14.2.2 closes at 10, not the 15 of 5.14.2.1 (spec §7.5)
+  assert.equal(t.cite, 'By-law 5.14.2.1, By-law 5.14.2.2');
+  assert.equal(oneDayReduction(wod, 50).compulsoryAt, null);
+  assert.equal(oneDayReduction(wod, 51).compulsoryAt, 15);
+  assert.equal(oneDayReduction(wod, 51).overs, 15);
+});
+
+test('women: not started by 10.30 am (T20) / 11.00 am (one-day) → abandoned', () => {
+  assert.equal(noStartAbandoned(wt20, 630, false), false);
+  assert.equal(noStartAbandoned(wt20, 631, false), true);
+  assert.equal(noStartAbandoned(wod, 660, false), false);
+  assert.equal(noStartAbandoned(wod, 661, false), true);
+  const d = replay([setup('wt20', 'women')], 631);
+  assert.ok(d.flags.some(f => /Not started by 10\.30 am/.test(f.text) && f.cite === 'By-law 5.14.2.4'));
+});
+
+test('women: no-game overs to side one by 11.45 / 11.50 am', () => {
+  // T20 from 10.00 am: 10 overs x 4 min land 10.40, fine; from 11.10 they land 11.50, past 11.45
+  assert.equal(minOversProjection(wt20, 600, 0).atRisk, false);
+  assert.equal(minOversProjection(wt20, 670, 0).atRisk, true);
+  assert.equal(minOversProjection(wt20, 670, 0).cite, 'By-law 5.14.2.2');
+  // One-day: 15 overs x 4 = 60 min, so a 10.50 am restart just makes 11.50
+  assert.equal(minOversProjection(wod, 650, 0).atRisk, false);
+  assert.equal(minOversProjection(wod, 651, 0).atRisk, true);
+});
+
+test('women: second innings finish, 12.15 pm / 1.30 pm hard stop', () => {
+  assert.deepEqual(secondInningsFinish(wt20, 31), { finish: 735, extended: true, cite: 'By-law 5.14.5.2, By-law 5.14.5.3' });
+  assert.equal(secondInningsFinish(wt20, 10).finish, 725);
+  assert.equal(secondInningsFinish(wt20, 25).finish, 735);   // capped at the hard stop
+  assert.equal(secondInningsFinish(wod, 45).finish, 810);
+  assert.equal(secondInningsFinish(wod, 5).finish, 805);
+});
+
+test('women: entitlement and bowler limits', () => {
+  assert.equal(entitlement(wt20, 'wt20', { how: 'compulsory', oversBowled: 10, balls: 0, revisedOvers: 10 }).cite, 'By-law 5.14.3');
+  assert.equal(entitlement(wod, 'wod', { how: 'allout', oversBowled: 18, balls: 2, revisedOvers: 26 }).balls, 156);
+  assert.equal(entitlement(wod, 'wod', { how: 'allout', oversBowled: 18, balls: 2, revisedOvers: 26 }).cite, 'By-law 5.15.4');
+  assert.equal(bowlerLimits(20, '5.14').max, 4);
+  assert.equal(bowlerLimits(30, '5.15').max, 6);
+  assert.equal(bowlerLimits(30, '5.15').cite, 'By-law 5.15.9');
+  assert.ok(quoteFor(bowlerLimits(20, '5.14').cite));
+});
+
+test('replay: women\'s T20 started 9.20 am → 18 overs, 15-min break, 5.8.3 not-ready cite', () => {
+  let d = replay([setup('wt20', 'women', { start: 540 })], 545);
+  assert.ok(d.timetable.some(x => x.label === 'Team not ready: loses match' && x.t === 555 && x.cite === 'By-law 5.8.3'));
+  const ev = [setup('wt20', 'women', { start: 540 }), { type: 'START', t: 560 }];
+  d = replay(ev, 560);
+  assert.equal(d.revisedOvers, 18);
+  assert.equal(d.timetable.find(x => x.label.startsWith('Innings break')).t, 560 + 18 * 4);
+  ev.push({ type: 'INNINGS_END', t: 632, how: 'compulsory', oversBowled: 18, balls: 0, breakKind: 'innings' });
+  d = replay(ev, 635);
+  assert.equal(d.entitlementBalls, 108);
+  assert.equal(d.next.label, 'Second innings starts');
+  assert.equal(d.next.t, 647);
+});
+
+test('replay: women\'s one-day, 55 min rain in side one → closed at 15, flag says 50', () => {
+  const ev = [setup('wod', 'women', { start: 540 }), { type: 'START', t: 540 }, { type: 'STOP', t: 580, reason: 'weather', oversBowled: 10, balls: 0 }, { type: 'RESUME', t: 635 }];
+  const d = replay(ev, 640);
+  assert.equal(d.revisedOvers, 15);
+  assert.equal(d.compulsoryAt, 15);
+  assert.ok(d.flags.some(f => f.text.startsWith('Over 50 min lost') && f.cite === 'By-law 5.15.2.2'));
+});
+
+test('drinks: heat rule cites the women\'s by-law in a women\'s match', () => {
+  const d = replay([setupD('wt20', 'women'), { type: 'START', t: 540 }, { type: 'STOP', t: 580, reason: 'heat', oversBowled: 10, balls: 0 }, { type: 'RESUME', t: 600 }], 605);
+  assert.equal(drinksRows(d)[0].cite, 'By-law 5.13.2');
 });

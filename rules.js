@@ -10,10 +10,12 @@ export const oversBalls = balls => `${Math.floor(balls / 6)}.${balls % 6}`;
 
 // 3.15.2.1 / 3.17.2.1: one over off for each full seven minutes lost (handbook table rounds down).
 // The reduction floors at the no-game overs (3.15.2.2/3.15.2.3): below that there is no match to shorten.
-// By-law 3.17 mirrors 3.15 for designated one-day matches.
+// By-law 3.17 mirrors 3.15 for designated one-day matches; women's 5.14.2 / 5.15.2 have the same shape.
+// Past the compulsory-closure threshold side one bats the no-game overs, and so does side two (x.3):
+// a no-op for men (120 min already floors at 25/20), 10 not 15 in a women's T20 (spec §7.5).
 export function oneDayReduction(row, lostMin) {
-  const overs = Math.max(row.noGame, row.overs - Math.floor(lostMin / row.lostMinPerOver));
-  const compulsoryAt = lostMin > 120 ? row.noGame : null;
+  const compulsoryAt = lostMin > row.compulsoryLostMin ? row.noGame : null;
+  const overs = compulsoryAt ?? Math.max(row.noGame, row.overs - Math.floor(lostMin / row.lostMinPerOver));
   const cite = compulsoryAt ? `By-law ${row.bylaw}.2.1, By-law ${row.bylaw}.2.2` : `By-law ${row.bylaw}.2.1`;
   return { overs, compulsoryAt, cite };
 }
@@ -44,11 +46,12 @@ export function entitlement(row, format, { how, oversBowled, balls = 0, revisedO
   return { balls: revisedOvers * 6, cite: `By-law ${row.bylaw}.4` };
 }
 
-// 3.15.9 one fifth; table 3.15.12.5 spreads the remainder: 39 → 4 x 8, 1 x 7.
-export function bowlerLimits(overs) {
+// 3.15.9 one fifth; table 3.15.12.5 spreads the remainder: 39 → 4 x 8, 1 x 7. Women's 5.14.9 / 5.15.9
+// say one fifth with no table; the same spread is applied (spec §7.6).
+export function bowlerLimits(overs, bylaw = '3.15') {
   const q = Math.floor(overs / 5), r = overs % 5;
   const split = r ? [{ bowlers: r, overs: q + 1 }, { bowlers: 5 - r, overs: q }] : [{ bowlers: 5, overs: q }];
-  return { max: r ? q + 1 : q, split, cite: 'By-law 3.15.9' };
+  return { max: r ? q + 1 : q, split, cite: `By-law ${bylaw}.9` };
 }
 
 // 3.15.12.2-4: defined for 40 and 35 overs only.
@@ -190,7 +193,7 @@ function derive(s, now) {
   const flags = [], tt = [];
   const push = (t, label, kind, cite) => tt.push({ t: Math.round(t), label, kind, cite });
   push(s.scheduledStart, 'Scheduled start', 'info', row.cite);
-  if (!s.firstBall) push(s.scheduledStart + 15, 'Team not ready: loses match', 'cutoff', 'By-law 3.12.3');
+  if (!s.firstBall) push(s.scheduledStart + 15, 'Team not ready: loses match', 'cutoff', row.notReadyCite);
   let out = { phase: s.phase, format: s.format, grade: s.grade, row, seasonId: s.seasonId, day: s.day, innings: s.innings, now,
     expected, currentOvers, behind, lost: s.lostByInnings, lostToday: s.lostToday, oversEntries: s.oversEntries,
     inningsEnds: s.inningsEnds, segments: s.segments, notes: s.notes, teaTaken: s.teaTaken, teaDeferredAt: s.teaDeferredAt,
@@ -205,7 +208,7 @@ function derive(s, now) {
     if (inn1) { const e = entitlement(row, s.format, { how: inn1.how, oversBowled: inn1.overs, balls: inn1.balls, revisedOvers: red.overs }); out.entitlementBalls = e.balls; out.entitlementCite = e.cite; }
     const fin = secondInningsFinish(row, s.lostWeatherByInnings[2] || 0); out.finish = fin.finish;
     if (s.phase === 'notstarted' && noStartAbandoned(row, now, false)) flags.push({ level: 'danger', text: `Not started by ${fmtTime(row.noStartBy)}: abandoned, match drawn`, cite: noStartCite });
-    if (red.compulsoryAt) flags.push({ level: 'warn', text: `Over 120 min lost: side one is closed at ${red.compulsoryAt} overs`, cite: `By-law ${row.bylaw}.2.2` });
+    if (red.compulsoryAt) flags.push({ level: 'warn', text: `Over ${row.compulsoryLostMin} min lost: side one is closed at ${red.compulsoryAt} overs`, cite: `By-law ${row.bylaw}.2.2` });
     if (s.innings === 1 && s.firstBall && s.phase !== 'abandoned') {
       const p = minOversProjection(row, now, currentOvers);
       if (p.atRisk) flags.push({ level: 'warn', text: `${row.noGame} overs to side one needed by ${fmtTime(row.minOversBy)}; at the scheduled rate they land ${fmtTime(Math.round(p.reachAt))}`, cite: p.cite });
@@ -259,7 +262,7 @@ function derive(s, now) {
     if (lastResumed?.reason === 'heat') {
       const lastEnd = [...s.segments].reverse().find(x => x.kind !== 'play' && x.to != null)?.to ?? s.firstBall;
       const since = playedMinutes(s.segments, null, now) - playedMinutes(s.segments, null, lastEnd);
-      push(now + Math.max(0, 40 - since), 'Drinks (heat rule, every 40 min)', 'break', 'By-law 3.23.2');
+      push(now + Math.max(0, 40 - since), 'Drinks (heat rule, every 40 min)', 'break', row.heatCite);
     } else {
       let at = null;
       if (!twoDay) {

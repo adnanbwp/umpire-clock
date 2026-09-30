@@ -69,11 +69,13 @@ function renderSetup(d) {
   const live = d.phase !== 'setup' && d.phase !== 'notstarted';
   const v = { format: setup?.format ?? 'oneday', grade: setup?.grade ?? 'quick', start: setup?.start ?? 750, day: setup?.day ?? 1, drinks: setup ? (setup.drinks ?? (setup.drinksInterval > 0)) : true };
   const opts = (map, sel) => Object.entries(map).map(([k, l]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${l}</option>`).join('');
+  // Only the grades the format has rows for: the women's formats have one row for every grade.
+  const gradeOpts = (fmt, sel) => opts(Object.fromEntries(Object.keys(SEASONS[CURRENT_SEASON].rows[fmt]).map(k => [k, GRADES[k]])), sel);
   $('#app').innerHTML = `<h1>Umpire Clock</h1>
     ${live ? `<div class="card"><b>Match in progress.</b> Setup is locked. <div class="row"><button id="newmatch" class="danger">New match (archive this one)</button></div></div>` : ''}
     <form id="setup" class="card" ${live ? 'inert' : ''}>
       <label>Format<select name="format">${opts(FORMATS, v.format)}</select></label>
-      <label>Grade<select name="grade">${opts(GRADES, v.grade)}</select></label>
+      <label>Grade<select name="grade">${gradeOpts(v.format, v.grade)}</select></label>
       <label>Scheduled start<input type="time" name="start" value="${toHHMM(v.start)}"></label>
       <label>Day (two-day only)<select name="day"><option value="1" ${v.day === 1 ? 'selected' : ''}>Day 1</option><option value="2" ${v.day === 2 ? 'selected' : ''}>Day 2</option></select></label>
       <label><input type="checkbox" name="drinks" ${v.drinks ? 'checked' : ''} style="width:auto;min-height:0;margin-right:.5rem"> Drinks at the halfway over of each innings or session (club practice)</label>
@@ -92,7 +94,11 @@ function renderSetup(d) {
       ['Minutes per over', minutesPerOver(r).toFixed(2)]].filter(Boolean);
     $('#derived').innerHTML = `<table>${rows.map(([k, val]) => `<tr><td>${k}</td><td class="t">${val}</td></tr>`).join('')}</table><p>${cite(r.cite)}</p>`;
   };
-  form.oninput = showDerived; showDerived();
+  // A format change re-lists the grades and resets the start to that format's (12.30 pm men, 9.00 am women).
+  const syncFormat = () => { const fmt = form.elements.format.value, keys = Object.keys(SEASONS[CURRENT_SEASON].rows[fmt]);
+    const g = [form.elements.grade.value, 'quick'].find(k => keys.includes(k)) ?? keys[0];
+    form.elements.grade.innerHTML = gradeOpts(fmt, g); form.elements.start.value = toHHMM(getRow(CURRENT_SEASON, fmt, g).start); };
+  form.oninput = ev => { if (ev.target.name === 'format') syncFormat(); showDerived(); }; showDerived();
   form.onsubmit = ev => { ev.preventDefault(); const f = Object.fromEntries(new FormData(form));
     events = [{ type: 'SETUP', season: CURRENT_SEASON, format: f.format, grade: f.grade, start: fromHHMM(f.start), day: Number(f.day), drinks: f.drinks === 'on' }];
     view = 'status'; save(); };
@@ -103,7 +109,7 @@ function renderSetup(d) {
 function resultCard(d) {
   const last = events.at(-1); if (!last) return '';
   const heat = last.type === 'RESUME' && [...d.segments].reverse().find(x => x.kind === 'stop')?.reason === 'heat'
-    ? `<p class="muted">Heat: drinks every 40 min, tea may be extended 10 min, innings break 5 min; extend the finish to cover them. ${cite('By-law 3.23.2')}</p>` : '';
+    ? `<p class="muted">Heat: drinks every 40 min, tea may be extended 10 min, innings break 5 min; extend the finish to cover them. ${cite(d.row.heatCite)}</p>` : '';
   if (last.type === 'RESUME') {
     if (d.format === 'twoday' && last.t >= d.quota.extendedStumps)
       return `<div class="card"><h2>Recalculation</h2><p>Play not in progress at stumps: the day has ended. ${cite('By-law 3.16.2.2.5')}</p></div>`;
@@ -117,7 +123,7 @@ function resultCard(d) {
   }
   if (last.type === 'INNINGS_END' && (d.entitlementBalls != null || d.entitlementNote)) {
     if (d.entitlementNote) return `<div class="card"><h2>Second side entitlement</h2><p>${esc(d.entitlementNote)}. ${cite(d.entitlementCite)}</p></div>`;
-    const overs = Math.floor(d.entitlementBalls / 6), bl = bowlerLimits(overs), fr = fieldingRestrictions(overs);
+    const overs = Math.floor(d.entitlementBalls / 6), bl = bowlerLimits(overs, d.row.bylaw), fr = fieldingRestrictions(overs);
     return `<div class="card"><h2>Second side entitlement</h2><p class="big">${oversBalls(d.entitlementBalls)} overs</p><p>${d.entitlementBalls} balls. ${cite(d.entitlementCite)}</p>
       ${d.format === 'twoday' ? '' : `<p>Bowlers: max ${bl.max} each (${bl.split.map(x => `${x.bowlers} × ${x.overs}`).join(', ')}). ${cite(bl.cite)}</p>
       ${d.format === 'oneday' && (d.grade === 'jika' || d.grade === 'quick') ? `<p>Fielding restrictions: ${fr.blocks ? fr.blocks.map(b => `overs ${b.from}–${b.to}: ${b.out} out`).join('; ') : 'no by-law provision for this total; captains to agree'}. ${cite(fr.cite)}</p>` : ''}`}</div>`;

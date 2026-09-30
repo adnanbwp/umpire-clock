@@ -1,19 +1,20 @@
 # Umpire Clock
 
 A small web app for the umpire's phone that does the time and overs arithmetic in NMCA
-senior men's cricket: what a delayed start does to the overs, what a rain break does to a
-two-day quota, when tea falls, how many balls the second side gets, and whether the over
-rate is behind. It works with no signal once it has loaded, it has no accounts, and nothing
-you enter leaves the phone.
+senior cricket. It covers men's one-day, designated one-day and two-day matches, and the
+women's T20 and 30-over games. It tells you what a delayed start does to the overs, what a
+rain break does to a two-day quota, when tea falls, how many balls the second side gets,
+and whether the over rate is behind. It works with no signal once it has loaded, it has no
+accounts, and nothing you enter leaves the phone.
 
 Tap any number on screen and it shows the by-law it came from. The season's constants live
-in `seasons.js`; at the moment they are the 2025-26 by-laws.
+in `seasons.js`; at the moment they are the 2025-26 men's and women's by-laws.
 
 To install on Android, open the page in Chrome, open the menu and choose Add to Home
 screen. After that first load it runs without a connection.
 
-This is not a rulebook. In four places the by-laws are silent or the handbook disagrees
-with them, and the app applies one reading. Those four are listed in `docs/spec.md`
+This is not a rulebook. In nine places the by-laws say nothing, can be read two ways, or
+disagree with the handbook, and the app picks one reading. Those nine are listed in `docs/spec.md`
 section 7. If you umpire in the NMCA, check them against what the umpires' association
 says before you rely on the app in a match.
 

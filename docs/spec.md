@@ -2,12 +2,13 @@
 
 **Date:** 8 September 2026. **Owner:** Adnan. **Status:** approved in conversation, awaiting written review.
 
-A phone web app that does the time-and-overs arithmetic of NMCA senior men's cricket for the
+A phone web app that does the time-and-overs arithmetic of NMCA senior men's and women's cricket for the
 umpire: delayed starts, rain and other stoppages, delayed finishes, tea timing, second-innings
 entitlement and over-rate position. It answers, at any moment, "when is the next break?" and
 "how many overs should have been bowled by now?"
 
 Sources: `kb/nmca-senior-playing-by-laws-2025-26.md` (cited as by-law 3.x),
+`kb/nmca-womens-playing-by-laws-2025-26.md` (by-law 5.x; added 30 September 2026),
 `kb/nmca-captains-umpires-handbook-2025-26.md` (Handbook S1 §n), `kb/nmca-administration-regulations-2025-26.md`
 (reg 2.x). Routing: `.claude/skills/nmca-umpiring/`. Brainstorm: `docs/umpiring-tools-brainstorm-2026-09-08.md`.
 
@@ -15,9 +16,11 @@ Sources: `kb/nmca-senior-playing-by-laws-2025-26.md` (cited as by-law 3.x),
 
 **In:** senior men's one-day (3.15), designated one-day (3.17) and two-day (3.16) matches,
 Shield and Club grades, home-and-away and semi/preliminary finals (which use two-day
-conditions, 3.19.1.2). Offline. Android home-screen install. One user, shareable by URL.
+conditions, 3.19.1.2). Women's T20 (5.14) and one-day 30-over (5.15), all grades (the
+timings are the same for Lorraine Ireland, Lenore Smith, Heather Baillie and lower). Offline. Android home-screen install. One user, shareable by URL.
 
-**Out (version one):** women's and junior formats; incident logging and match reports;
+**Out (version one):** junior formats; women's T10 and The Hundred (5.16: the 2026-27 run
+sheet replaces the T10 round with a charity round, and no Hundred fixture is known); incident logging and match reports;
 per-over tapping and bowler tracking; heat timers beyond a note; the Grand Final 97-over
 variant (3.19.1.4); anything that sends data anywhere.
 
@@ -36,9 +39,9 @@ Inputs:
 
 | Field | Values | Default |
 |---|---|---|
-| Format | One-day; Two-day; Designated one-day | One-day |
-| Grade group | Jika; Quick or Kelly; All other grades (one-day and DODC collapse Quick/Kelly/others into one row per the by-law tables) | Quick or Kelly |
-| Scheduled start | time | 12.30 |
+| Format | One-day; Two-day; Designated one-day; Women's T20; Women's one-day (30 overs) | One-day |
+| Grade group | Jika; Quick or Kelly; All other grades (one-day and DODC collapse Quick/Kelly/others into one row per the by-law tables). Women's formats list one choice, all grades | Quick or Kelly |
+| Scheduled start | time; changing the format resets it to that format's start | 12.30 (women 9.00) |
 | Day | 1 or 2 (two-day only) | 1 |
 | Drinks at the halfway over | on / off | on |
 
@@ -105,11 +108,21 @@ below and a `cite` for each. 2025-26 values:
 | Two-day | Jika | 12.30 | 5.30 | 80 | — | 2.50 | 10 | 6.00 | — | 3.00 (day 1 → one-day on day 2) | — | 3.5 | — | 3.16 table, 3.16.1, 3.16.2.2, 3.12.5 |
 | Two-day | Quick/Kelly | 12.30 | 5.00 | 70 | — | 2.35 | 10 | 5.30 | — | 3.00 | — | 3.5 | — | same |
 | Two-day | All other grades | 12.30 | 4.45 | 65 | — | 2.30 | 10 | 5.15 | — | 3.00 | — | 3.5 | — | same |
+| Women's T20 | all | 9.00 | 11.55 | 20 | 10 | 10.20 | 15 | — | 12.15 | 10.30 | 11.45 | 7 | 4 | 5.14 table, 5.14.1, 5.14.2, 5.14.5.2, 5.14.9 |
+| Women's one-day | all | 9.00 | 1.20 | 30 | 15 | 11.00 | 20 | — | 1.30 | 11.00 | 11.50 | 7 | 6 | 5.15 table, 5.15.1, 5.15.2, 5.15.5.2, 5.15.9 |
+
+Compulsory closure of side one (x.2.2) after more than 120 minutes lost for men, 40 for the
+women's T20, 50 for the women's one-day. Team not ready 15 minutes after the start loses the
+match: 3.12.3 men, 5.8.3 women. Heat: 3.23.2 men, 5.13.2 women (the 36 °C stoppage in 5.13.2
+is called by the General Manager, not the umpire, so the app only cites it).
 
 Derived per row: **minutes per over** = (stumps − start − tea or innings break) / overs bowled
 in that window (both sides in a one-day match, the day's quota in a two-day). Jika 280/80 = 3.50; Quick/Kelly one-day 250/70 = 3.57; two-day 70-over 250/70 = 3.57;
-65-over 235/65 = 3.62. Tea in a one-day match is the 20-minute innings break (3.15.1); the
-table's tea time is where the first innings lands at the scheduled rate.
+65-over 235/65 = 3.62; both women's formats 4.00 (160/40, 240/60). Tea in a one-day match is the 20-minute innings break (3.15.1); the
+table's tea time is where the first innings lands at the scheduled rate. The women's tables'
+"Tea Break" is the same thing: 10.20 = 9.00 + 20 × 4 and 11.00 = 9.00 + 30 × 4, and the only
+break the by-law gives is the 15- or 20-minute one at the end of side one's innings (5.14.1,
+5.15.1).
 
 ### 3.2 Event log
 
@@ -166,8 +179,8 @@ overs     = scheduled − floor(lost / 7)
 Matches the Handbook S1 §2 table (0–6 min → 40, 7–13 → 39 …). The handbook's Example A
 (start 2.00 pm → 27) disagrees with its own table (28); the app follows the table and by-law.
 
-Cliffs: `lost > 120` → the first innings is compulsorily closed at the no-game overs
-(3.15.2.2). Fewer than no-game overs bowled to the first side by 3.30 pm → abandoned, draw
+Cliffs: `lost > 120` (women 40 / 50) → the first innings is compulsorily closed at the
+no-game overs (3.15.2.2, 5.14.2.2, 5.15.2.2), and the overs a side become the no-game overs. Fewer than no-game overs bowled to the first side by 3.30 pm → abandoned, draw
 (3.15.2.2). Not started by the no-start time → abandoned, draw (3.15.2.4, 3.17.2.4). The
 status screen shows "25 overs needed by 3.30 pm" whenever the projection at the current
 rate would miss it.
@@ -175,7 +188,8 @@ rate would miss it.
 ### 4.2 One-day, second innings (3.15.5, 3.17.5)
 
 No over reduction. If stoppages in the second innings total more than 30 minutes, the finish
-extends by up to 30 minutes to the hard stop; play ceases at the end of the over in progress
+extends to the hard stop (30 minutes after stumps for men, 20 for the women's T20, 10 for the
+women's one-day; 5.14.5.2, 5.15.5.2); play ceases at the end of the over in progress
 at the hard stop; no resumption after it (3.15.5.2–3). Under 30 minutes: the finish is the
 scheduled stumps plus the stoppage minutes, never past the hard stop.
 
@@ -265,6 +279,10 @@ Handbook example: 78 of 80 at 5.30 pm, no allowance → 2 short.
 | 14 | Jika two-day, 78 overs at 5.30 | allowance 0 → 2 short; allowance 10 min → round(10/3.5) = 3 allowance overs → 0 short (pins round-to-nearest) |
 | 15 | Handbook reckoner rows | 0–111 min → 40…25 and 35…20 |
 | 16 | Handbook over-rate rows | 30–281 min → 9…80 via round(min/3.5) |
+| 17 | Women's T20, first ball 9.20 am | lost 20 → 18 overs each; innings break projected 10.32, 15 min |
+| 18 | Women's T20 41 min lost / one-day 51 min lost | closed at 10 / 15 overs, overs a side 10 / 15 (§7.5) |
+| 19 | Women's T20 not started by 10.30 am (one-day 11.00) | abandoned, draw |
+| 20 | Women's second innings, over 30 min rain | finish 12.15 pm (T20) / 1.30 pm (one-day) |
 
 ## 5. Offline and install
 
@@ -294,5 +312,24 @@ in daylight.
    shows the conflict in the citation text. Settle it with the umpires' association before
    round one, because the umpire at the other end may be holding the handbook.
 
-Confirm 1–4 with the umpires' association; the season table changes when the 2026-27
+5. Women's compulsory closure (5.14.2.2, 5.15.2.2): past 40 / 50 minutes lost the innings
+   closes at 10 / 15 overs, but 5.14.2.1's one-over-per-seven-minutes reduction would still
+   give 15 / 23. The app takes the closure as the overs a side, so side two's entitlement
+   follows it (5.14.3/5.14.4). For men the two already coincide.
+6. Women's bowler limits (5.14.9, 5.15.9) say one fifth of the scheduled overs with no table
+   for reduced overs; the app spreads the remainder as men's table 3.15.12.5 does.
+7. Women's tea is the innings break (§3.1). The heat clause 5.13.2 extends "the tea break" by
+   up to 10 minutes and "the change of innings breaks" by up to 5; in a women's match they are
+   the same break, and the app shows both as written. 5.13.2 also says a heat stoppage within
+   20 minutes of the scheduled "morning tea break" takes that break, which in a one-innings-
+   break format would close side one early; the app does not model it.
+8. A moved start (5.8.4 lets Sunday teams more than 20 km apart start at 10.00 am; 5.13.2 lets
+   the association start earlier in heat). Neither clause says whether stumps and the
+   10.30 / 11.45 / 12.15 cut-offs move with it. The app moves only the scheduled start, so a
+   late start is measured from it, and keeps every other time as tabled.
+9. Balls: 5.14.3 / 5.15.3 give side two "the same number of balls" (3.15.3 says "legal
+   balls"), and 5.14.8 / 5.15.8 cap an over at eight balls including no balls and wides. The
+   app counts legal balls, six to the over, as for men.
+
+Confirm 1–9 with the umpires' association and the Women's Manager; the season table changes when the 2026-27
 by-laws are published.
