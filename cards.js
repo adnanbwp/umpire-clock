@@ -1,11 +1,11 @@
 // cards.js — the format cheat card: icons, short lines, a clause each. Numbers come from the
 // season row and rules.js, so the card can't drift from the clock. Wording from the by-laws in
-// the Mavericks KB (senior 3.x, women's 5.x, 2025-26); policy lines cite POL / reg / run sheet.
+// the Mavericks KB (senior 3.x 2026-27, women's 5.x 2025-26); policy lines cite POL / reg / run sheet.
 import { CURRENT_SEASON, getRow, minutesPerOver } from './seasons.js';
 import { fmtTime, oneDayReduction, bowlerLimits } from './rules.js';
 
 const WOMEN = new Set(['wt20', 'wod']);
-const SHIELD = new Set(['jika', 'quick']); // Jika, Quick and Kelly are the Shield grades (3.14.1.1)
+const SHIELD = new Set(['jika', 'quick']); // Burland (key 'jika'), Quick and Kelly are the Shield grades (3.14.1.1)
 const i = (icon, text, cite = '') => ({ icon, text, cite });
 
 // 3.x.2.1: one over per seven minutes, grouped into bands until side one is compulsorily closed.
@@ -59,7 +59,7 @@ export function formatCard(format, grade) {
     shield && i('⭕', '27.5 m circles from middle stump, joined by straight lines', '3.15.11'),
     i('⛑️', 'Helmet compulsory: keeping up, or fielding within 7 m', women ? '5.2.9' : '3.4.9'),
     women ? i('👥', 'Min 8 to start · 11 fielders · 13 listed, 11 bat, 11 bowl', `${b}.12`)
-          : i('🧒', 'Juniors bowling pace: U18 20 a day (7/spell), U16 16 (6), U14 12 (5). Rest = spell', '3.7.6'),
+          : i('🧒', 'Juniors bowling pace: U18 20 a day (7/spell), U16 16 (6), U14 12 (5). Rest = spell', '3.7.5'),
     women && i('🧍', 'Square-leg umpire: batting team (Lorraine Ireland, Lenore Smith), fielding team (Heather Baillie)', `${b}.13`),
     i('🤐', 'Tell captains: swearing and excessive appealing are the priority this season', 'Run sheet'),
   ].filter(x => x && x.text);
@@ -72,7 +72,7 @@ export function formatCard(format, grade) {
     i('➗', `Over 30 min lost after the extension: 1 over per ${row.lostMinPerOver} min remaining, max ${row.overs}`, '3.16.2.2.2, 3.16.2.2.3'),
     i('✂️', `Side 1 closed at ${row.overs} overs. Side 2 gets the same legal balls`, '3.16.4, 3.16.5'),
     i('➕', `Side 1 out or declared on day 1: side 2 gets ${row.overs} overs + unused day-1 overs`, '3.16.6'),
-    i('🆕', 'New ball: fielding captain\'s option at the start of the 2nd innings, and after the scheduled overs (80 Jika, 70 others)', '3.2.7, 3.2.8'),
+    i('🆕', 'New ball: fielding captain\'s option at the start of the 2nd innings, and after the scheduled overs (80 Burland, 70 others)', '3.2.7, 3.2.8'),
     i('↩️', 'Follow-on available with a lead of 100', '3.16.9'),
     i('⏰', 'Late start: team not in default may claim the lost time. Claims to umpires by tea', '3.16.7'),
   ] : [
@@ -134,9 +134,9 @@ export function formatCard(format, grade) {
   const after = [
     i('✍️', 'Sign both scorebooks', women ? '5.9.3' : '3.13.3'),
     i('🔒', 'Score dispute: impound books, to the GM that evening, give no opinion', women ? '5.3.4' : '3.5.4'),
-    i('🗳️', 'Medal votes in OfficialsHQ by 12 pm the next day', 'Reg 2.22.3'),
-    i('📋', 'Umpires Match Report in OfficialsHQ: facts only', 'Reg 2.15.2'),
-    i('💵', 'Fee paid by the tea break', 'Reg 2.26.7'),
+    i('🗳️', 'Medal votes in OfficialsHQ by 12 pm the next day', 'Reg 2.22.3 (2025-26; dropped from the 2026-27 regs, OfficialsHQ per Potts)'),
+    i('📋', 'Umpires Match Report in OfficialsHQ: facts only', 'Reg 10(ii)'),
+    i('💵', 'Fee paid by the tea break', 'Reg 2.26.7 (2025-26; dropped from the 2026-27 regs)'),
   ];
 
   return {

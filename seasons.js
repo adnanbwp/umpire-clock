@@ -1,13 +1,14 @@
 // seasons.js — every by-law constant, with its citation. Minutes since midnight.
-// Source: NMCA Senior Playing By-Laws 2025-26 (kb/nmca-senior-playing-by-laws-2025-26.md) and
+// Source: NMCA Senior Playing By-Laws 2025-26 (kb/nmca-senior-playing-by-laws-2025-26.md), checked against
+// 2026-27 (kb/nmca-senior-playing-by-laws-2026-27.md) on 2026-10-02: Jika renamed Burland, no number changed; and
 // Women's Playing By-Laws 2025-26 (kb/nmca-womens-playing-by-laws-2025-26.md).
 // Changing anything in this file requires bumping VERSION in sw.js, or installed phones keep the old numbers.
-export const CURRENT_SEASON = '2025-26';
+export const CURRENT_SEASON = '2026-27';
 
 // Women's T10 and The Hundred (5.16) are left out: the 2026-27 run sheet removes the T10 round for a
 // charity round (kb/nmca-umpires-meeting-run-sheet-2026-09-08.md), and no Hundred fixture is known.
 export const FORMATS = { oneday: 'One-day', dodc: 'Designated one-day', twoday: 'Two-day', wt20: "Women's T20", wod: "Women's one-day (30 overs)" };
-export const GRADES = { jika: 'Jika Shield', quick: 'Quick / Kelly Shield', other: 'All other grades',
+export const GRADES = { jika: 'Burland Shield (was Jika)', quick: 'Quick / Kelly Shield', other: 'All other grades',
   women: 'All grades (Lorraine Ireland, Lenore Smith, Heather Baillie and lower)' };
 
 const ONEDAY_CITE = 'By-law 3.15 table, 3.15.1, 3.15.2, 3.15.5, 3.15.9';
@@ -51,6 +52,9 @@ export const SEASONS = {
     },
   },
 };
+// ponytail: 2026-27 senior tables 3.15-3.17 match 2025-26 line for line (Jika is now Burland; the key stays 'jika'),
+// so the rows are shared. Women's 2026-27 by-laws are not published yet; give this season its own rows when they differ.
+SEASONS['2026-27'] = { label: "2026-27 senior by-laws · women's still 2025-26 (2026-27 not yet published)", rows: SEASONS['2025-26'].rows };
 
 export function getRow(seasonId, format, grade) {
   const row = SEASONS[seasonId]?.rows[format]?.[grade];
@@ -98,8 +102,8 @@ export const QUOTES = {
   'Handbook S1 §3': 'When the quota is bowled, umpires check the time taken, factor in extra drinks, injuries, lost balls, and report overs not bowled by the scheduled time. Time-remaining table: one over per 3.5 minutes, nearest.',
   'Interpretation': 'Not stated in the by-laws. The app applies the reading shown; adjust the inputs if the umpires\' association reads it differently.',
   'Practice': 'Club practice, not a by-law: drinks at the halfway over of each innings in a one-day match, and of each session either side of tea in a two-day match (17 of 35, 20 of 40, rounded down). After a heat stoppage the by-law rule applies instead: drinks every 40 minutes (3.23.2.1).',
-  'By-law 3.15 table': 'One-day: Jika 12.30 pm start, 5.30 pm stumps, 40 overs a side, no game under 25, tea 2.50 pm. Quick, Kelly and all other grades: 12.30 pm, 5.00 pm, 35 overs, no game under 20, tea 2.35 pm.',
-  'By-law 3.16 table': 'Two-day: Jika 12.30 pm start, 5.30 pm stumps, 80 overs, tea 2.50 pm. Quick and Kelly: 5.00 pm stumps, 70 overs, tea 2.35 pm. All other grades: 4.45 pm stumps, 65 overs, tea 2.30 pm.',
+  'By-law 3.15 table': 'One-day: Burland (was Jika) 12.30 pm start, 5.30 pm stumps, 40 overs a side, no game under 25, tea 2.50 pm. Quick, Kelly and all other grades: 12.30 pm, 5.00 pm, 35 overs, no game under 20, tea 2.35 pm.',
+  'By-law 3.16 table': 'Two-day: Burland (was Jika) 12.30 pm start, 5.30 pm stumps, 80 overs, tea 2.50 pm. Quick and Kelly: 5.00 pm stumps, 70 overs, tea 2.35 pm. All other grades: 4.45 pm stumps, 65 overs, tea 2.30 pm.',
   'By-law 3.17 table': 'Designated one-day: all grades 12.30 pm start, 5.00 pm stumps, 35 overs a side, no game under 20, tea 2.35 pm.',
   'By-law 3.16.1': 'Two-day breaks: tea 20 minutes (3.16.1.1); a ten-minute interval between innings (3.16.1.2).',
   'By-law 3.16.1.1': 'Afternoon tea of 20 minutes shall be taken on each days play as near as possible to scheduled time either on the completion of an over or the fall of a wicket.',

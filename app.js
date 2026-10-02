@@ -256,7 +256,7 @@ function renderCard(d) {
     ${w ? sect('🌦️', `Forecast (as of ${w.asOf})`, `<p>${w.icon} ${esc(w.summary)}</p><table class="lost"><tr><th></th><th>🌡️</th><th>🌧️</th><th>💨</th></tr>${w.hours.map(([h, t, r, g]) => `<tr><td>${h}</td><td>${t}°</td><td>${r}%</td><td>${g}</td></tr>`).join('')}</table><p>Recheck (needs signal): <a href="${w.bom}">BoM forecast</a> · <a href="https://www.bom.gov.au/products/IDR023.loop.shtml">rain radar</a></p><p>💵 Fee ${esc(game.fee)}</p>`) : ''}
     ${c.sections.map(s => sect(s.icon, s.title, `<ul class="icons">${s.items.map(li).join('')}</ul>`)).join('')}
     ${game && !live ? '<div class="row"><button id="usegame" class="primary">Set up the clock for this game</button></div>' : ''}
-    <p class="muted">2025-26 by-laws. Tap a clause for its words.</p>`;
+    <p class="muted">${esc(SEASONS[CURRENT_SEASON].label)}. Tap a clause for its words.</p>`;
   $('#cardsel').onchange = ev => { cardSel = ev.target.value; renderCard(d); };
   const u = $('#usegame'); if (u) u.onclick = () => {
     events = [{ type: 'SETUP', season: CURRENT_SEASON, format: game.format, grade: game.grade, start: c.row.start, day: 1, drinks: true }];
