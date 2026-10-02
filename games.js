@@ -8,12 +8,12 @@ export const GAMES = [
     venue: 'C.H. Sullivan Memorial Park, Davis St, Reservoir', ground: 'Oval #1 East',
     fee: '$180 (not yet approved)',
     weather: {
-      asOf: 'Wed 30 Sep', icon: '🌦️', summary: 'Showers from about 1 pm, heavier late', temp: '17–19°', rain: '63→90%', gusts: '25–35', uv: '5–6',
-      hours: [['12 pm', 19, 63, 32], ['1 pm', 19, 71, 27], ['2 pm', 18, 78, 27], ['3 pm', 18, 84, 29], ['4 pm', 17, 88, 22], ['5 pm', 17, 90, 25]],
+      asOf: 'Fri 2 Oct', icon: '🌧️', summary: 'Showers all day, wettest at 9 am and 2 pm, gusty afternoon', temp: '14–17°', rain: '87→96%', gusts: '35–45', uv: '2–5',
+      hours: [['12 pm', 17, 87, 35], ['1 pm', 17, 94, 40], ['2 pm', 17, 96, 43], ['3 pm', 16, 95, 43], ['4 pm', 15, 94, 44], ['5 pm', 14, 94, 37]],
       bom: 'https://www.bom.gov.au/places/vic/reservoir/',
     },
     alerts: [
-      { icon: '🌧️', text: 'Rain likely from 1 pm. Note every time off and on: lost-time table below', level: 'warn' },
+      { icon: '🌧️', text: 'Rain all day, ~2 mm at 9 am: check the ground and covers before the toss. Note every time off and on: lost-time table below', level: 'warn' },
       { icon: '⏰', text: 'Not started by 2.45 = draw (handbook says 2.30, by-law wins)', level: 'warn' },
       { icon: '🗳️', text: 'Medal votes due 12 pm Sunday. You\'re at Heidelberg then, so do them Saturday night', level: 'info' },
     ],
@@ -24,8 +24,8 @@ export const GAMES = [
     venue: 'Beverley Road Reserve, 60–70 Beverley Rd, Heidelberg', ground: 'Beverley Oval (West)',
     fee: '$100 (not yet approved)',
     weather: {
-      asOf: 'Wed 30 Sep', icon: '🌬️', summary: 'Cool, dry, gusty', temp: '13–16°', rain: '25%', gusts: '30–35', uv: '3→7',
-      hours: [['9 am', 13, 26, 32], ['10 am', 14, 24, 35], ['11 am', 15, 24, 34], ['12 pm', 16, 24, 32]],
+      asOf: 'Fri 2 Oct', icon: '🌬️', summary: 'Cool, clearing, gusty. Field may be wet from Saturday', temp: '12–15°', rain: '32→16%', gusts: '30–33', uv: '2→7',
+      hours: [['9 am', 13, 32, 33], ['10 am', 14, 25, 33], ['11 am', 14, 20, 32], ['12 pm', 14, 16, 32]],
       bom: 'https://www.bom.gov.au/places/vic/heidelberg/',
     },
     alerts: [
