@@ -42,7 +42,8 @@ test('checkpoints: T20 over 10 at 9.40 and 11.15; Quick over 35 at 2.35 and 5.00
 
 test('games: valid format/grade, and pickGame takes today, else next, else last', () => {
   for (const g of GAMES) assert.ok(getRow(CURRENT_SEASON, g.format, g.grade));
-  assert.equal(pickGame(GAMES, '2026-10-03').date, '2026-10-03');
-  assert.equal(pickGame(GAMES, '2026-10-01').date, '2026-10-03');
-  assert.equal(pickGame(GAMES, '2027-01-01').date, '2026-10-04');
+  const week = [{ date: '2026-10-04' }, { date: '2026-10-03' }];   // fixed list: GAMES changes every week
+  assert.equal(pickGame(week, '2026-10-03').date, '2026-10-03');
+  assert.equal(pickGame(week, '2026-10-01').date, '2026-10-03');
+  assert.equal(pickGame(week, '2027-01-01').date, '2026-10-04');
 });
