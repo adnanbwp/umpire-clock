@@ -130,15 +130,16 @@ test('example 4: 45 min lost in second innings → extend to hard stop 5.30', ()
   assert.match(f.cite, /3\.15\.5\.2/);
 });
 
-test('example 5: 20 min lost in second innings → finish 5.20, not extended', () => {
+test('example 5: 20 min lost in second innings → no extension, no cut-off (3.15.5)', () => {
   const f = secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'quick'), 20);
-  assert.equal(f.finish, 1040);
+  assert.equal(f.finish, 1020);   // scheduled stumps 5.00, not 5.20: the by-law adds nothing for 30 or less
   assert.equal(f.extended, false);
-  assert.match(f.cite, /Interpretation/);
+  assert.equal(f.cite, 'By-law 3.15.5');
 });
 
 test('second innings finish never passes the hard stop', () => {
-  assert.equal(secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'jika'), 30).finish, 1080);
+  assert.equal(secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'jika'), 31).finish, 1080);
+  assert.equal(secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'jika'), 30).finish, 1050);   // exactly 30 is not "more than"
   assert.equal(secondInningsFinish(getRow(CURRENT_SEASON, 'oneday', 'jika'), 0).finish, 1050);
 });
 
@@ -583,10 +584,11 @@ test('women: no-game overs to side one by 11.45 / 11.50 am', () => {
 
 test('women: second innings finish, 12.15 pm / 1.30 pm hard stop', () => {
   assert.deepEqual(secondInningsFinish(wt20, 31), { finish: 735, extended: true, cite: 'By-law 5.14.5.2, By-law 5.14.5.3' });
-  assert.equal(secondInningsFinish(wt20, 10).finish, 725);
-  assert.equal(secondInningsFinish(wt20, 25).finish, 735);   // capped at the hard stop
+  assert.equal(secondInningsFinish(wt20, 10).finish, 715);   // 30 or less: scheduled stumps
+  assert.equal(secondInningsFinish(wt20, 25).finish, 715);
   assert.equal(secondInningsFinish(wod, 45).finish, 810);
-  assert.equal(secondInningsFinish(wod, 5).finish, 805);
+  assert.equal(secondInningsFinish(wod, 5).finish, 800);
+  for (const r of [wt20, wod]) assert.ok(quoteFor(secondInningsFinish(r, 5).cite));
 });
 
 test('women: entitlement and bowler limits', () => {
@@ -653,8 +655,14 @@ test('second innings: short delay projecting past the finish is info, not a cut-
   assert.ok(f, JSON.stringify(d.flags)); assert.equal(f.level, 'info');
 });
 
-test('one-day stoppage still on at the hard stop: no resumption', () => {
+test('past the hard stop: warn, still allow a restart, and log it against the cut-off', () => {
   const d = replay(quickDay, 1050);
-  assert.ok(d.flags.some(x => x.level === 'danger' && /No resumption after 5\.30 pm/.test(x.text) && x.cite === 'By-law 3.15.5.3'));
-  assert.ok(!replay(quickDay, 1049).flags.some(x => x.level === 'danger'));
+  assert.ok(d.flags.some(x => x.level === 'warn' && /Past 5\.30 pm/.test(x.text) && x.cite === 'By-law 3.15.5.3'));
+  assert.ok(!d.flags.some(x => x.level === 'danger'));
+  assert.ok(!replay(quickDay, 1049).flags.some(x => /Past 5\.30/.test(x.text)));
+  const late = replay([...quickDay, { type: 'RESUME', t: 1060 }], 1061);
+  assert.equal(late.phase, 'play');
+  assert.deepEqual(late.lateResumes, [1060]);
+  assert.ok(late.flags.some(x => /resumed at 5\.40 pm, after the 5\.30 pm cut-off/.test(x.text)));
+  assert.deepEqual(replay([...quickDay, { type: 'RESUME', t: 1040 }], 1041).lateResumes, []);
 });

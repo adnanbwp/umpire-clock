@@ -31,11 +31,12 @@ export function minOversProjection(row, now, oversBowledNow) {
   return { reachAt, atRisk: reachAt > row.minOversBy, cite: `By-law ${row.bylaw}.2.2` };
 }
 
-// 3.15.5.2-3 / 3.17.5.2-3: over 30 minutes lost → extend to the hard stop. Under 30 is not
-// stated; the app extends by the minutes lost, capped at the hard stop (spec §7.3).
+// 3.15.5.2-3 / 3.17.5.2-3: over 30 minutes lost to weather → extend to the hard stop, cease at the end
+// of the over in progress. 30 or less: no extension and no cut-off; under 3.15.5 play goes on until
+// side two has its entitlement, so `finish` is just scheduled stumps.
 export function secondInningsFinish(row, stoppageMin) {
   if (stoppageMin > 30) return { finish: row.hardStop, extended: true, cite: `By-law ${row.bylaw}.5.2, By-law ${row.bylaw}.5.3` };
-  return { finish: Math.min(row.stumps + stoppageMin, row.hardStop), extended: false, cite: 'Interpretation' };
+  return { finish: row.stumps, extended: false, cite: `By-law ${row.bylaw}.5` };
 }
 
 // Second side's entitlement in legal balls.
@@ -230,11 +231,10 @@ function derive(s, now) {
       push(at, 'Entitlement bowled (projected)', 'info', out.entitlementCite);
       if (at > fin.finish) flags.push(fin.extended
         ? { level: 'warn', text: `Side two's ${oversBalls(out.entitlementBalls)} overs land ${fmtTime(at)} at the scheduled rate, after ${fmtTime(fin.finish)}: play ceases at the end of the over in progress at ${fmtTime(fin.finish)}`, cite: `By-law ${row.bylaw}.5.2` }
-        : { level: 'info', text: `Side two's ${oversBalls(out.entitlementBalls)} overs land ${fmtTime(at)} at the scheduled rate, past ${fmtTime(fin.finish)}. No cut-off unless more than 30 min is lost to weather in this innings: play goes on to the entitlement`, cite: `By-law ${row.bylaw}.5.2` });
+        : { level: 'info', text: `Side two's ${oversBalls(out.entitlementBalls)} overs land ${fmtTime(at)} at the scheduled rate, past ${fmtTime(fin.finish)} stumps. No cut-off unless more than 30 min is lost to weather in this innings: play goes on to the entitlement`, cite: `By-law ${row.bylaw}.5` });
     }
-    if (s.phase === 'stoppage' && now >= row.hardStop) flags.push({ level: 'danger', text: `No resumption after ${fmtTime(row.hardStop)}: play is over`, cite: `By-law ${row.bylaw}.5.3` });
     push(row.stumps, 'Scheduled stumps', 'finish', row.cite);
-    if (s.innings === 2 && fin.finish !== row.stumps) push(fin.finish, fin.extended ? 'Extended finish (end of over in progress)' : 'Finish (extended by minutes lost)', 'finish', fin.cite);
+    if (s.innings === 2 && fin.extended) push(fin.finish, 'Extended finish (end of over in progress)', 'finish', fin.cite);
     push(row.hardStop, 'Hard stop, no resumption after', 'cutoff', `By-law ${row.bylaw}.5.3`);
   } else {
     const lastStop = [...s.segments].reverse().find(x => x.kind === 'stop' && x.resumed);
@@ -252,7 +252,7 @@ function derive(s, now) {
       out.entitlementNote = 'Innings carried into day two: side two bats for the overs left in the day, not exceeding the day maximum';
     }
     if (s.day === 1 && s.phase === 'notstarted' && now > row.day1NoStartBy) flags.push({ level: 'danger', text: `Not started by ${fmtTime(row.day1NoStartBy)}: a one-day match is played on day two; umpires receive half the daily fee`, cite: 'By-law 3.12.5', action: 'CONVERT' });
-    if (s.phase === 'stoppage' && now >= row.stumps) flags.push({ level: 'danger', text: `Play not in progress at ${fmtTime(row.stumps)} because of weather: the day ends`, cite: 'By-law 3.16.2.2.5' });
+
     if (tea.tea === 'now' && s.phase === 'stoppage') flags.push({ level: 'info', text: 'Within 30 min of scheduled tea: take tea now, no separate innings interval', cite: tea.cite });
     if (s.day === 1 && !s.firstBall) push(row.day1NoStartBy, 'No start → one-day on day two', 'cutoff', 'By-law 3.12.5');
     if (tea.tea === 'scheduled' || tea.tea === 'now') {
@@ -293,6 +293,13 @@ function derive(s, now) {
       }
     }
   }
+  // No resumption after the weather cut-off (3.15.5.3 / 3.17.5.3 / 5.1x.5.3; two-day 3.16.2.2.5). The app warns
+  // but lets the umpire restart, and each late restart is logged against the cut-off.
+  const cutoff = twoDay ? row.stumps : row.hardStop, cutoffCite = twoDay ? 'By-law 3.16.2.2.5' : `By-law ${row.bylaw}.5.3`;
+  if (s.phase === 'stoppage' && now >= cutoff) flags.push({ level: 'warn', text: `Past ${fmtTime(cutoff)}: the by-law says play does not resume after a weather stoppage now. If it does, the log records it`, cite: cutoffCite });
+  out.lateResumes = s.segments.filter(x => x.kind === 'stop' && x.resumed && x.to > cutoff).map(x => x.to);
+  for (const t of out.lateResumes) flags.push({ level: 'warn', text: `Play resumed at ${fmtTime(t)}, after the ${fmtTime(cutoff)} cut-off`, cite: cutoffCite });
+  out.cutoff = cutoff; out.cutoffCite = cutoffCite;
   tt.sort((a, b) => a.t - b.t);
   out.timetable = tt; out.flags = flags;
   out.next = tt.find(x => x.t > now && x.kind !== 'info') ?? null;

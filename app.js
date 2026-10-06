@@ -115,15 +115,20 @@ function bowlersLine(overs, row) {
     A bowler already on or past their limit bowls no more; overs already bowled stand. ${cite(bl.cite)}</p>`;
 }
 
+// Second innings: more than 30 min lost to weather extends to the hard stop; 30 or less changes nothing.
+const finishLine = p => p.finish === p.row.hardStop
+  ? `<p>Lost in the second innings ${mins(p.lost[2])} (over 30) → extended finish <b>${fmtTime(p.finish)}</b>, end of the over in progress. ${cite(`By-law ${p.row.bylaw}.5.2`)}</p>`
+  : `<p>Lost in the second innings ${mins(p.lost[2])}: not over 30 min of weather, so no extension and no cut-off. Play goes on until side two has its overs. ${cite(`By-law ${p.row.bylaw}.5`)}</p>`;
+
 // During a stoppage: replay a RESUME at this minute to show what restarting now would mean.
 function previewCard(d) {
   if (d.flags.some(f => f.level === 'danger')) return '';
   const p = replay([...events, { type: 'RESUME', t: d.now }], d.now), stopped = d.now - d.segments.at(-1).from;
-  const extra = p.flags.filter(f => !d.flags.some(g => g.text === f.text)).map(f => `<div class="flag ${f.level}">${esc(f.text)} ${cite(f.cite)}</div>`).join('');
+  const extra = p.flags.filter(f => !d.flags.some(g => g.text === f.text) && !/^Play resumed at/.test(f.text)).map(f => `<div class="flag ${f.level}">${esc(f.text)} ${cite(f.cite)}</div>`).join('');
   let body;
   if (d.format === 'twoday') body = `<p>Lost today ${mins(p.lostToday)} → <b>quota ${p.quota.quota} overs</b> for the day, stumps <b>${fmtTime(p.quota.extendedStumps)}</b>. ${cite(p.quota.cite)}</p>`;
   else if (d.innings === 1) body = `<p>Lost in the first innings ${mins(p.lost[1])} → <b>${p.revisedOvers} overs a side</b>${p.compulsoryAt ? `, side one closed at ${p.compulsoryAt}` : ''}. ${cite(`By-law ${d.row.bylaw}.2.1`)}</p>${bowlersLine(p.compulsoryAt ?? p.revisedOvers, d.row)}`;
-  else body = `<p>Lost in the second innings ${mins(p.lost[2])} → finish <b>${fmtTime(p.finish)}</b>${p.finish === d.row.hardStop ? ' (end of the over in progress)' : ''}. ${cite(p.finish === d.row.hardStop ? `By-law ${d.row.bylaw}.5.2` : 'Interpretation')}</p>`;
+  else body = finishLine(p);
   return `<div class="card"><h2>If play resumes now</h2><p class="muted">Stopped ${mins(stopped)} at ${fmtTime(d.segments.at(-1).from)}. Updates every 30 seconds.</p>${body}</div>${extra}`;
 }
 
@@ -134,14 +139,14 @@ function resultCard(d) {
     ? `<p class="muted">Heat: drinks every 40 min, tea may be extended 10 min, innings break 5 min; extend the finish to cover them. ${cite(d.row.heatCite)}</p>` : '';
   if (last.type === 'RESUME') {
     if (d.format === 'twoday' && last.t >= d.quota.extendedStumps)
-      return `<div class="card"><h2>Recalculation</h2><p>Play not in progress at stumps: the day has ended. ${cite('By-law 3.16.2.2.5')}</p></div>`;
+      return `<div class="card"><h2>Recalculation</h2><p>Resumed after ${fmtTime(d.quota.extendedStumps)} stumps: the by-law had ended the day. Logged. ${cite('By-law 3.16.2.2.5')}</p></div>`;
     if (d.format === 'twoday') { const q = d.quota; return `<div class="card"><h2>Recalculation</h2>
       <p>Lost today ${mins(d.lostToday)}. Extended stumps <b>${fmtTime(q.extendedStumps)}</b>.</p>
       ${q.remaining == null ? `<p>Under 30 min lost after the extension: the full ${d.row.overs} overs must be bowled.</p>`
         : `<p>Time remaining ${q.remaining} min (${fmtTime(q.extendedStumps)} − ${fmtTime(last.t)}${q.teaDeduction ? ` − ${q.teaDeduction} tea` : ''}) → <b>quota ${q.quota} overs</b> for the day.</p>`}
       ${cite(q.cite)}${heat}</div>`; }
     if (d.innings === 1) return `<div class="card"><h2>Recalculation</h2><p>Lost in the first innings ${mins(d.lost[1])} → <b>${d.revisedOvers} overs a side</b>${d.compulsoryAt ? `, side one closed at ${d.compulsoryAt}` : ''}.</p>${cite(`By-law ${d.row.bylaw}.2.1`)}${bowlersLine(d.compulsoryAt ?? d.revisedOvers, d.row)}${heat}</div>`;
-    return `<div class="card"><h2>Recalculation</h2><p>Lost in the second innings ${mins(d.lost[2])} → finish <b>${fmtTime(d.finish)}</b>${d.finish === d.row.hardStop ? ' (hard stop; end of the over in progress; no resumption after)' : ''}.</p>${cite(`By-law ${d.row.bylaw}.5.2`)}${heat}</div>`;
+    return `<div class="card"><h2>Recalculation</h2>${finishLine(d)}${heat}</div>`;
   }
   if (last.type === 'INNINGS_END' && (d.entitlementBalls != null || d.entitlementNote)) {
     if (d.entitlementNote) return `<div class="card"><h2>Second side entitlement</h2><p>${esc(d.entitlementNote)}. ${cite(d.entitlementCite)}</p></div>`;
@@ -189,13 +194,13 @@ function renderStatus(d) {
     <div class="card"><h2>Timetable</h2><table>${d.timetable.map(x => `<tr class="${x.t <= now ? 'past' : ''} ${x === next ? 'next' : ''}"><td class="t">${fmtTime(x.t)}</td><td>${esc(x.label)}<br>${cite(x.cite)}</td></tr>`).join('')}</table></div>`;
 }
 
-function describe(e) {
+function describe(e, d) {
   const t = e.t != null ? fmtTime(e.t) : '';
   switch (e.type) {
     case 'SETUP': return `Setup: ${FORMATS[e.format]}, ${GRADES[e.grade]}, scheduled start ${fmtTime(e.start)}${e.format === 'twoday' ? `, day ${e.day}` : ''}${e.drinks ? ', drinks at the halfway over' : ''}`;
     case 'START': return `${t} Play started`;
     case 'STOP': return `${t} Stoppage (${e.reason}) at ${e.oversBowled}.${e.balls || 0} overs`;
-    case 'RESUME': return `${t} Play resumed`;
+    case 'RESUME': return `${t} Play resumed${d?.lateResumes?.includes(e.t) ? `, after the ${fmtTime(d.cutoff)} cut-off (${d.cutoffCite})` : ''}`;
     case 'INNINGS_END': return `${t} Innings closed (${e.how === 'compulsory' ? 'compulsory closure' : 'all out / declared'}) at ${e.oversBowled}.${e.balls || 0}; ${e.breakKind === 'tea' ? 'tea' : 'innings break'}`;
     case 'BREAK_START': return `${t} ${e.kind === 'tea' ? 'Tea' : 'Drinks'}`;
     case 'BREAK_END': return `${t} Play resumed after break`;
@@ -208,7 +213,7 @@ function describe(e) {
   }
 }
 function logText(evs, d) {
-  const lines = evs.map(describe);
+  const lines = evs.map(e => describe(e, d));
   if (d.stumpsReport) lines.push(`Overs short to report: ${d.stumpsReport.short} (allowance ${d.stumpsReport.allowanceOvers} overs)`);
   if (d.format !== 'twoday' && d.revisedOvers != null) lines.push(`Overs a side: ${d.revisedOvers}; lost first innings ${d.lost[1]} min, second innings ${d.lost[2] || 0} min`);
   if (d.format === 'twoday' && d.quota) lines.push(`Day quota: ${d.quota.quota}; lost ${d.lostToday} min; stumps ${fmtTime(d.quota.extendedStumps)}`);
