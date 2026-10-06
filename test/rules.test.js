@@ -625,3 +625,36 @@ test('drinks: heat rule cites the women\'s by-law in a women\'s match', () => {
   const d = replay([setupD('wt20', 'women'), { type: 'START', t: 540 }, { type: 'STOP', t: 580, reason: 'heat', oversBowled: 10, balls: 0 }, { type: 'RESUME', t: 600 }], 605);
   assert.equal(drinksRows(d)[0].cite, 'By-law 5.13.2');
 });
+
+const resolves = c => { for (const k of c.split(', ')) assert.ok(quoteFor(k), `no quote for ${k}`); };
+
+test('bowler limits cite table 3.15.12.5 inside it, interpretation outside it', () => {
+  assert.equal(bowlerLimits(33).cite, 'By-law 3.15.9, By-law 3.15.12.5');
+  assert.equal(bowlerLimits(20).cite, 'By-law 3.15.9');
+  assert.deepEqual(bowlerLimits(22).split, [{ bowlers: 2, overs: 5 }, { bowlers: 3, overs: 4 }]);
+  assert.equal(bowlerLimits(22).cite, 'By-law 3.15.9, Interpretation');
+  for (const n of [33, 22, 27]) resolves(bowlerLimits(n).cite);
+  resolves(bowlerLimits(22, '5.15').cite);
+});
+
+const quickDay = [{ type: 'SETUP', season: CURRENT_SEASON, format: 'oneday', grade: 'quick', start: 750, day: 1, drinks: true },
+  { type: 'START', t: 750 }, { type: 'INNINGS_END', t: 892, how: 'compulsory', oversBowled: 35, balls: 0, breakKind: 'innings' },
+  { type: 'BREAK_END', t: 912 }, { type: 'STOP', t: 960, reason: 'weather', oversBowled: 12, balls: 0 }];
+
+test('second innings: entitlement past the 5.30 cut-off after a 30+ min weather delay warns', () => {
+  const d = replay([...quickDay, { type: 'RESUME', t: 1000 }], 1001);
+  const f = d.flags.find(x => /ceases at the end of the over in progress at 5\.30 pm/.test(x.text));
+  assert.ok(f, JSON.stringify(d.flags)); assert.equal(f.level, 'warn'); resolves(f.cite);
+});
+
+test('second innings: short delay projecting past the finish is info, not a cut-off', () => {
+  const d = replay([...quickDay, { type: 'RESUME', t: 980 }], 981);
+  const f = d.flags.find(x => /No cut-off/.test(x.text));
+  assert.ok(f, JSON.stringify(d.flags)); assert.equal(f.level, 'info');
+});
+
+test('one-day stoppage still on at the hard stop: no resumption', () => {
+  const d = replay(quickDay, 1050);
+  assert.ok(d.flags.some(x => x.level === 'danger' && /No resumption after 5\.30 pm/.test(x.text) && x.cite === 'By-law 3.15.5.3'));
+  assert.ok(!replay(quickDay, 1049).flags.some(x => x.level === 'danger'));
+});

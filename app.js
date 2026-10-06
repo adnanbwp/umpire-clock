@@ -108,8 +108,28 @@ function renderSetup(d) {
 }
 
 // ---------- status ----------
+// Bowler limits for a (revised) innings length, as table 3.15.12.5 spreads them.
+function bowlersLine(overs, row) {
+  const bl = bowlerLimits(overs, row.bylaw), [hi, lo] = bl.split;
+  return `<p>Bowlers: max <b>${bl.max}</b> (${bl.split.map(x => `${x.bowlers} × ${x.overs}`).join(', ')})${lo ? `: only ${hi.bowlers} may bowl ${hi.overs}, the rest stop at ${lo.overs}` : ''}.
+    A bowler already on or past their limit bowls no more; overs already bowled stand. ${cite(bl.cite)}</p>`;
+}
+
+// During a stoppage: replay a RESUME at this minute to show what restarting now would mean.
+function previewCard(d) {
+  if (d.flags.some(f => f.level === 'danger')) return '';
+  const p = replay([...events, { type: 'RESUME', t: d.now }], d.now), stopped = d.now - d.segments.at(-1).from;
+  const extra = p.flags.filter(f => !d.flags.some(g => g.text === f.text)).map(f => `<div class="flag ${f.level}">${esc(f.text)} ${cite(f.cite)}</div>`).join('');
+  let body;
+  if (d.format === 'twoday') body = `<p>Lost today ${mins(p.lostToday)} → <b>quota ${p.quota.quota} overs</b> for the day, stumps <b>${fmtTime(p.quota.extendedStumps)}</b>. ${cite(p.quota.cite)}</p>`;
+  else if (d.innings === 1) body = `<p>Lost in the first innings ${mins(p.lost[1])} → <b>${p.revisedOvers} overs a side</b>${p.compulsoryAt ? `, side one closed at ${p.compulsoryAt}` : ''}. ${cite(`By-law ${d.row.bylaw}.2.1`)}</p>${bowlersLine(p.compulsoryAt ?? p.revisedOvers, d.row)}`;
+  else body = `<p>Lost in the second innings ${mins(p.lost[2])} → finish <b>${fmtTime(p.finish)}</b>${p.finish === d.row.hardStop ? ' (end of the over in progress)' : ''}. ${cite(p.finish === d.row.hardStop ? `By-law ${d.row.bylaw}.5.2` : 'Interpretation')}</p>`;
+  return `<div class="card"><h2>If play resumes now</h2><p class="muted">Stopped ${mins(stopped)} at ${fmtTime(d.segments.at(-1).from)}. Updates every 30 seconds.</p>${body}</div>${extra}`;
+}
+
 function resultCard(d) {
   const last = events.at(-1); if (!last) return '';
+  if (d.phase === 'stoppage') return previewCard(d);
   const heat = last.type === 'RESUME' && [...d.segments].reverse().find(x => x.kind === 'stop')?.reason === 'heat'
     ? `<p class="muted">Heat: drinks every 40 min, tea may be extended 10 min, innings break 5 min; extend the finish to cover them. ${cite(d.row.heatCite)}</p>` : '';
   if (last.type === 'RESUME') {
@@ -120,14 +140,14 @@ function resultCard(d) {
       ${q.remaining == null ? `<p>Under 30 min lost after the extension: the full ${d.row.overs} overs must be bowled.</p>`
         : `<p>Time remaining ${q.remaining} min (${fmtTime(q.extendedStumps)} − ${fmtTime(last.t)}${q.teaDeduction ? ` − ${q.teaDeduction} tea` : ''}) → <b>quota ${q.quota} overs</b> for the day.</p>`}
       ${cite(q.cite)}${heat}</div>`; }
-    if (d.innings === 1) return `<div class="card"><h2>Recalculation</h2><p>Lost in the first innings ${mins(d.lost[1])} → <b>${d.revisedOvers} overs a side</b>${d.compulsoryAt ? `, side one closed at ${d.compulsoryAt}` : ''}.</p>${cite(`By-law ${d.row.bylaw}.2.1`)}${heat}</div>`;
+    if (d.innings === 1) return `<div class="card"><h2>Recalculation</h2><p>Lost in the first innings ${mins(d.lost[1])} → <b>${d.revisedOvers} overs a side</b>${d.compulsoryAt ? `, side one closed at ${d.compulsoryAt}` : ''}.</p>${cite(`By-law ${d.row.bylaw}.2.1`)}${bowlersLine(d.compulsoryAt ?? d.revisedOvers, d.row)}${heat}</div>`;
     return `<div class="card"><h2>Recalculation</h2><p>Lost in the second innings ${mins(d.lost[2])} → finish <b>${fmtTime(d.finish)}</b>${d.finish === d.row.hardStop ? ' (hard stop; end of the over in progress; no resumption after)' : ''}.</p>${cite(`By-law ${d.row.bylaw}.5.2`)}${heat}</div>`;
   }
   if (last.type === 'INNINGS_END' && (d.entitlementBalls != null || d.entitlementNote)) {
     if (d.entitlementNote) return `<div class="card"><h2>Second side entitlement</h2><p>${esc(d.entitlementNote)}. ${cite(d.entitlementCite)}</p></div>`;
-    const overs = Math.floor(d.entitlementBalls / 6), bl = bowlerLimits(overs, d.row.bylaw), fr = fieldingRestrictions(overs);
+    const overs = Math.floor(d.entitlementBalls / 6), fr = fieldingRestrictions(overs);
     return `<div class="card"><h2>Second side entitlement</h2><p class="big">${oversBalls(d.entitlementBalls)} overs</p><p>${d.entitlementBalls} balls. ${cite(d.entitlementCite)}</p>
-      ${d.format === 'twoday' ? '' : `<p>Bowlers: max ${bl.max} each (${bl.split.map(x => `${x.bowlers} × ${x.overs}`).join(', ')}). ${cite(bl.cite)}</p>
+      ${d.format === 'twoday' ? '' : `${bowlersLine(overs, d.row)}
       ${d.format === 'oneday' && (d.grade === 'jika' || d.grade === 'quick') ? `<p>Fielding restrictions: ${fr.blocks ? fr.blocks.map(b => `overs ${b.from}–${b.to}: ${b.out} out`).join('; ') : 'no by-law provision for this total; captains to agree'}. ${cite(fr.cite)}</p>` : ''}`}</div>`;
   }
   if (last.type === 'STUMPS' && d.stumpsReport) {

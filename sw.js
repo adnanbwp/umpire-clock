@@ -1,4 +1,4 @@
-const VERSION = 'umpire-clock-v13';
+const VERSION = 'umpire-clock-v14';
 const FILES = ['./', './index.html', './app.js', './rules.js', './seasons.js', './cards.js', './games.js', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 // cache: 'reload' skips the HTTP cache (Pages max-age=600): without it a fresh VERSION can
 // install the stale files it was meant to replace, and serve them cache-first for good.

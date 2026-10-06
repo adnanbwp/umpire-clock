@@ -51,7 +51,9 @@ export function entitlement(row, format, { how, oversBowled, balls = 0, revisedO
 export function bowlerLimits(overs, bylaw = '3.15') {
   const q = Math.floor(overs / 5), r = overs % 5;
   const split = r ? [{ bowlers: r, overs: q + 1 }, { bowlers: 5 - r, overs: q }] : [{ bowlers: 5, overs: q }];
-  return { max: r ? q + 1 : q, split, cite: `By-law ${bylaw}.9` };
+  // Table 3.15.12.5 runs 40 down to 25; outside it (Quick/Kelly 20-24, 3.17, women's) the same spread is an interpretation.
+  const cite = !r ? `By-law ${bylaw}.9` : bylaw === '3.15' && overs >= 25 ? 'By-law 3.15.9, By-law 3.15.12.5' : `By-law ${bylaw}.9, Interpretation`;
+  return { max: r ? q + 1 : q, split, cite };
 }
 
 // 3.15.12.2-4: defined for 40 and 35 overs only.
@@ -223,7 +225,14 @@ function derive(s, now) {
       push(end + row.inningsBreak, 'Second innings starts (projected)', 'info', `By-law ${row.bylaw}.1`);
     }
     if (s.phase === 'break' && s.innings === 2) push(s.segments.at(-1).from + row.inningsBreak, 'Second innings starts', 'break', `By-law ${row.bylaw}.1`);
-    if (s.innings === 2 && s.phase === 'play' && out.entitlementBalls != null) push(now + Math.max(0, out.entitlementBalls / 6 - currentOvers) * mpo, 'Entitlement bowled (projected)', 'info', out.entitlementCite);
+    if (s.innings === 2 && s.phase === 'play' && out.entitlementBalls != null) {
+      const at = Math.round(now + Math.max(0, out.entitlementBalls / 6 - currentOvers) * mpo);
+      push(at, 'Entitlement bowled (projected)', 'info', out.entitlementCite);
+      if (at > fin.finish) flags.push(fin.extended
+        ? { level: 'warn', text: `Side two's ${oversBalls(out.entitlementBalls)} overs land ${fmtTime(at)} at the scheduled rate, after ${fmtTime(fin.finish)}: play ceases at the end of the over in progress at ${fmtTime(fin.finish)}`, cite: `By-law ${row.bylaw}.5.2` }
+        : { level: 'info', text: `Side two's ${oversBalls(out.entitlementBalls)} overs land ${fmtTime(at)} at the scheduled rate, past ${fmtTime(fin.finish)}. No cut-off unless more than 30 min is lost to weather in this innings: play goes on to the entitlement`, cite: `By-law ${row.bylaw}.5.2` });
+    }
+    if (s.phase === 'stoppage' && now >= row.hardStop) flags.push({ level: 'danger', text: `No resumption after ${fmtTime(row.hardStop)}: play is over`, cite: `By-law ${row.bylaw}.5.3` });
     push(row.stumps, 'Scheduled stumps', 'finish', row.cite);
     if (s.innings === 2 && fin.finish !== row.stumps) push(fin.finish, fin.extended ? 'Extended finish (end of over in progress)' : 'Finish (extended by minutes lost)', 'finish', fin.cite);
     push(row.hardStop, 'Hard stop, no resumption after', 'cutoff', `By-law ${row.bylaw}.5.3`);
