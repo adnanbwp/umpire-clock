@@ -47,3 +47,13 @@ test('games: valid format/grade, and pickGame takes today, else next, else last'
   assert.equal(pickGame(week, '2026-10-01').date, '2026-10-03');
   assert.equal(pickGame(week, '2027-01-01').date, '2026-10-04');
 });
+
+test('women 2026-27: 13 bat and bowl, Div 1-2 final over in T20 only, DLS in one-day finals only', () => {
+  const text = f => formatCard(f, 'women').sections.flatMap(s => s.items).map(x => x.text).join('\n');
+  const t20 = text('wt20'), wod = text('wod');
+  for (const t of [t20, wod]) { assert.match(t, /all 13 may bat and bowl/); assert.match(t, /retired below the score first/); }
+  assert.match(t20, /Div 1 and 2: final over needs 6 legal balls/);
+  assert.doesNotMatch(wod, /final over needs 6/);
+  assert.match(wod, /DLS/);
+  assert.doesNotMatch(t20, /DLS/);
+});

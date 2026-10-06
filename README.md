@@ -8,7 +8,7 @@ and whether the over rate is behind. It works with no signal once it has loaded,
 accounts, and nothing you enter leaves the phone.
 
 Tap any number on screen and it shows the by-law it came from. The season's constants live
-in `seasons.js`; at the moment they are the 2026-27 men's by-laws and the 2025-26 women's by-laws (2026-27 not yet published).
+in `seasons.js`; at the moment they are the 2026-27 men's and women's by-laws.
 
 To install on Android, open the page in Chrome, open the menu and choose Add to Home
 screen. After that first load it runs without a connection.

@@ -1,12 +1,12 @@
 // seasons.js — every by-law constant, with its citation. Minutes since midnight.
 // Source: NMCA Senior Playing By-Laws 2025-26 (kb/nmca-senior-playing-by-laws-2025-26.md), checked against
 // 2026-27 (kb/nmca-senior-playing-by-laws-2026-27.md) on 2026-10-02: Jika renamed Burland, no number changed; and
-// Women's Playing By-Laws 2025-26 (kb/nmca-womens-playing-by-laws-2025-26.md).
+// Women's Playing By-Laws 2025-26 (kb/nmca-womens-playing-by-laws-2025-26.md), checked against 2026-27
+// (kb/nmca-womens-playing-by-laws-2026-27.md) on 2026-10-06: 5.14 and 5.15 times, overs and lost-time rules unchanged.
 // Changing anything in this file requires bumping VERSION in sw.js, or installed phones keep the old numbers.
 export const CURRENT_SEASON = '2026-27';
 
-// Women's T10 and The Hundred (5.16) are left out: the 2026-27 run sheet removes the T10 round for a
-// charity round (kb/nmca-umpires-meeting-run-sheet-2026-09-08.md), and no Hundred fixture is known.
+// 2026-27 drops T10 and The Hundred; women's 5.16 is now a 2-day 60/60 match, left out until an appointment needs it.
 export const FORMATS = { oneday: 'One-day', dodc: 'Designated one-day', twoday: 'Two-day', wt20: "Women's T20", wod: "Women's one-day (30 overs)" };
 export const GRADES = { jika: 'Burland Shield (was Jika)', quick: 'Quick / Kelly Shield', other: 'All other grades',
   women: 'All grades (Lorraine Ireland, Lenore Smith, Heather Baillie and lower)' };
@@ -53,8 +53,8 @@ export const SEASONS = {
   },
 };
 // ponytail: 2026-27 senior tables 3.15-3.17 match 2025-26 line for line (Jika is now Burland; the key stays 'jika'),
-// so the rows are shared. Women's 2026-27 by-laws are not published yet; give this season its own rows when they differ.
-SEASONS['2026-27'] = { label: "2026-27 senior by-laws · women's still 2025-26 (2026-27 not yet published)", rows: SEASONS['2025-26'].rows };
+// and the women's 5.14 / 5.15 tables match too, so the rows are shared. Give this season its own rows when they differ.
+SEASONS['2026-27'] = { label: '2026-27 senior and women\'s by-laws', rows: SEASONS['2025-26'].rows };
 
 export function getRow(seasonId, format, grade) {
   const row = SEASONS[seasonId]?.rows[format]?.[grade];

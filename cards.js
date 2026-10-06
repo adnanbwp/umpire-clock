@@ -1,6 +1,6 @@
 // cards.js — the format cheat card: icons, short lines, a clause each. Numbers come from the
 // season row and rules.js, so the card can't drift from the clock. Wording from the by-laws in
-// the Mavericks KB (senior 3.x 2026-27, women's 5.x 2025-26); policy lines cite POL / reg / run sheet.
+// the Mavericks KB (senior 3.x 2026-27, women's 5.x 2026-27); policy lines cite POL / reg / run sheet.
 import { CURRENT_SEASON, getRow, minutesPerOver } from './seasons.js';
 import { fmtTime, oneDayReduction, bowlerLimits } from './rules.js';
 
@@ -57,10 +57,12 @@ export function formatCard(format, grade) {
           : i('🔴', '2 new two-piece red + 3 spares (15–25, 30–45, 50–70 overs old) at the toss. Missing after 15 min = forfeit', '3.2.1, 3.2.2'),
     women && i('🩷', 'Pink 142 g only if both captains and umpires agree before the start', '5.1.1.2'),
     shield && i('⭕', '27.5 m circles from middle stump, joined by straight lines', '3.15.11'),
-    i('⛑️', 'Helmet compulsory: keeping up, or fielding within 7 m', women ? '5.2.9' : '3.4.9'),
-    women ? i('👥', 'Min 8 to start · 11 fielders · 13 listed, 11 bat, 11 bowl', `${b}.12`)
+    // ponytail: women's 2026-27 5.2.9 stops mid-sentence after "keeping up to the stumps, regardless of the"; restore the fielding half when NMCA reissues it.
+    women ? i('⛑️', 'Helmet compulsory keeping up. Close fielders: clause cut off in the 2026-27 text, ask the NMCA', '5.2.9')
+          : i('⛑️', 'Helmet compulsory: keeping up, or fielding within 7 m', '3.4.9'),
+    women ? i('👥', 'Min 8 to start · 11 fielders · 13 listed, all 13 may bat and bowl', `${b}.12`)
           : i('🧒', 'Juniors bowling pace: U18 20 a day (7/spell), U16 16 (6), U14 12 (5). Rest = spell', '3.7.5'),
-    women && i('🧍', 'Square-leg umpire: batting team (Lorraine Ireland, Lenore Smith), fielding team (Heather Baillie)', `${b}.13`),
+    women && i('🧍', format === 'wt20' ? 'Square-leg umpire: batting team (Lorraine Ireland, Lenore Smith; captains may agree to swap), fielding team (Heather Baillie)' : 'Square-leg umpire: batting team (Lorraine Ireland, Lenore Smith), fielding team (Heather Baillie)', `${b}.13`),
     i('🤐', 'Tell captains: swearing and excessive appealing are the priority this season', 'Run sheet'),
   ].filter(x => x && x.text);
 
@@ -78,9 +80,10 @@ export function formatCard(format, grade) {
   ] : [
     i('✂️', `Side 1 closed at ${row.overs} overs. Side 2 gets the same ${women ? '' : 'legal '}balls`, `${b}.1, ${b}.3`),
     i('➕', `Side 1 all out early: side 2 still gets ${row.overs} overs (or the reduced number)`, `${b}.4`),
-    women && i('8️⃣', 'No over longer than 8 balls, counting no balls and wides', `${b}.8`),
+    women && i('8️⃣', format === 'wt20' ? 'No over longer than 8 balls, counting no balls and wides. Div 1 and 2: final over needs 6 legal balls' : 'No over longer than 8 balls, counting no balls and wides', `${b}.8`),
     women && i('🖐️', 'Overs bowled in 5-over blocks', `${b}.14`),
-    women && i('🚶', format === 'wt20' ? 'Retire at 35 (Lorraine Ireland 50). Back after all have batted, in order' : 'Retire at 50 (Lorraine Ireland 100). Back after all have batted, in order', `${b}.11`),
+    format === 'wod' && i('🏆', 'Finals only: DLS may be used to get a result', '5.15.2.5'),
+    women && i('🚶', format === 'wt20' ? 'Retire at 35 (Lorraine Ireland 50). Back after all have batted: those retired below the score first, then those who reached it' : 'Retire at 50 (Lorraine Ireland 100). Back after all have batted: those retired below the score first, then those who reached it', `${b}.11`),
     format === 'dodc' && i('🚶', 'Retire at 50. Back after all listed have batted, in order', '3.17.11'),
     i('🥤', `Drinks at over ${Math.floor(row.overs / 2)} (your practice, not a by-law)`, 'Practice'),
   ].filter(Boolean);
