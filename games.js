@@ -3,21 +3,25 @@
 // hours: [label, temp °C, rain chance %, gusts km/h]. Weather is a snapshot: asOf says when.
 export const GAMES = [
   // 2026-10-03 Fiji v Lalor (Quick Shield R1) removed: abandoned by the NMCA Board for rain, by-law 3.23. No fee (run sheet §5).
+  // 2026-10-04 Banyule v Olympic Fillies (women's Div 2 R1) removed: played, report approved 5 Oct.
+  // Formats per Adnan, 2026-10-07: both one-day. No weather yet: refreshed on request.
   {
-    date: '2026-10-04', format: 'wt20', grade: 'women', gradeName: 'Div 2 · Lenore Smith Shield', round: 1,
-    home: 'Banyule', away: 'Olympic Fillies Women',
-    venue: 'Beverley Road Reserve, 60–70 Beverley Rd, Heidelberg', ground: 'Beverley Oval (West)',
-    fee: '$100 (not yet approved)',
-    weather: {
-      asOf: 'Sat 3 Oct', icon: '⛅', summary: 'Dry and cool after ~60 mm since Thursday. Ground likely soft', temp: '13–15°', rain: '0–1%', gusts: '28–30', uv: '3→7',
-      hours: [['9 am', 14, 1, 29], ['10 am', 14, 0, 29], ['11 am', 15, 0, 30], ['12 pm', 15, 0, 29]],
-      bom: 'https://www.bom.gov.au/places/vic/heidelberg/',
-    },
+    date: '2026-10-10', format: 'oneday', grade: 'quick', gradeName: 'Jack Quick Shield', round: 2,
+    home: 'Strathewen Cougars 1st XI', away: 'Fiji Victorian 2nd XI',
+    venue: 'Strathewen Reserve, 160 Chadds Creek Rd, Strathewen', ground: 'Strathewen Reserve',
+    fee: '$180 (not yet approved)',
     alerts: [
-      { icon: '🟫', text: 'Saturday washed out. You are sole judge of the ground: take control by 8.30, check run-ups and footholds', level: 'warn' },
-      { icon: '👩', text: 'Women\'s rules: no free hit, no circle, 8-ball max over, retire at 35', level: 'warn' },
+      { icon: '🗳️', text: 'Medal votes due 12 pm Sunday. You\'re at Doreen then, so do them Saturday night', level: 'info' },
+    ],
+  },
+  {
+    date: '2026-10-11', format: 'wod', grade: 'women', gradeName: 'Div 2 · Lenore Smith Shield', round: 2,
+    home: 'Laurimar 1st XI', away: 'North Eltham Wanderers 2nd XI',
+    venue: 'Laurimar Town Park, Painted Hills Rd, Doreen', ground: 'Oval #2 East',
+    fee: '$140 (not yet approved)',
+    alerts: [
+      { icon: '👩', text: 'Women\'s one-day: retire at 50 in Div 2, not 35 as in T20 (5.15.11). 8-ball max over (5.15.8)', level: 'warn' },
       { icon: '🧍', text: 'Batting team supplies the square-leg umpire', level: 'info' },
-      { icon: '🧴', text: 'UV 7 by noon: sunscreen even though it\'s cool', level: 'info' },
     ],
   },
 ];
