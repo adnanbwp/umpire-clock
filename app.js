@@ -243,17 +243,18 @@ function renderCard(d) {
       <div class="muted">${dayName(game.date)} · Round ${game.round} · ${esc(game.gradeName)}</div>
       <h1>${esc(game.home)} <span class="muted">v</span> ${esc(game.away)}</h1>
       <p>📍 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.venue)}">${esc(game.venue)}</a> · <b>${esc(game.ground)}</b></p>
-      <div class="tiles">
+      <p>💵 Fee ${esc(game.fee)}</p>
+      ${w ? `<div class="tiles">
         <div class="tile"><span class="ico">${w.icon}</span><b>${esc(w.rain)}</b><small>rain chance</small></div>
         <div class="tile"><span class="ico">💨</span><b>${esc(w.gusts)}</b><small>gusts km/h</small></div>
         <div class="tile"><span class="ico">🌡️</span><b>${esc(w.temp)}</b><small>UV ${esc(w.uv)}</small></div>
-      </div></div>
+      </div>` : ''}</div>
       ${game.alerts.map(a => `<div class="flag ${a.level}"><span class="ico">${a.icon}</span> ${esc(a.text)}</div>`).join('')}` : `<div class="card"><h1>${esc(FORMATS[format])} · ${esc(GRADES[grade])}</h1></div>`}
     <div class="tiles">${c.tiles.map(t => `<div class="tile"><span class="ico">${t.icon}</span><b>${ampm(t.big)}</b><small>${esc(t.label)}</small></div>`).join('')}</div>
     <div class="card"><h2>🛑 Cut-offs</h2><ul class="icons">${c.cutoffs.map(li).join('')}</ul></div>
     ${c.lost ? sect('⏳', 'Lost time, innings 1 (1 over per 7 min)', `<table class="lost"><tr><th>Min lost</th><th>Overs</th><th>Bowler</th></tr>${c.lost.map(r => `<tr class="${r.closed ? 'bad' : ''}"><td>${r.to == null ? `over ${r.from - 1}` : `${r.from}–${r.to}`}</td><td class="n">${r.overs}</td><td>${r.closed ? 'closed' : r.max}</td></tr>`).join('')}</table><p>${cite(`By-law ${c.row.bylaw}.2.1`)} ${cite(`By-law ${c.row.bylaw}.2.2`)}</p>`, true) : ''}
     ${c.checkpoints ? sect('⏱️', 'Over-rate checkpoints', `<table class="lost"><tr><th>Over</th><th>Inn 1</th><th>Inn 2</th></tr>${c.checkpoints.map(k => `<tr><td class="n">${k.over}${k.drinks ? ' 🥤' : ''}</td><td>${fmtTime(k.one)}</td><td>${fmtTime(k.two)}</td></tr>`).join('')}</table>`) : ''}
-    ${w ? sect('🌦️', `Forecast (as of ${w.asOf})`, `<p>${w.icon} ${esc(w.summary)}</p><table class="lost"><tr><th></th><th>🌡️</th><th>🌧️</th><th>💨</th></tr>${w.hours.map(([h, t, r, g]) => `<tr><td>${h}</td><td>${t}°</td><td>${r}%</td><td>${g}</td></tr>`).join('')}</table><p>Recheck (needs signal): <a href="${w.bom}">BoM forecast</a> · <a href="https://www.bom.gov.au/products/IDR023.loop.shtml">rain radar</a></p><p>💵 Fee ${esc(game.fee)}</p>`) : ''}
+    ${w ? sect('🌦️', `Forecast (as of ${w.asOf})`, `<p>${w.icon} ${esc(w.summary)}</p><table class="lost"><tr><th></th><th>🌡️</th><th>🌧️</th><th>💨</th></tr>${w.hours.map(([h, t, r, g]) => `<tr><td>${h}</td><td>${t}°</td><td>${r}%</td><td>${g}</td></tr>`).join('')}</table><p>Recheck (needs signal): <a href="${w.bom}">BoM forecast</a> · <a href="https://www.bom.gov.au/products/IDR023.loop.shtml">rain radar</a></p>`) : ''}
     ${c.sections.map(s => sect(s.icon, s.title, `<ul class="icons">${s.items.map(li).join('')}</ul>`)).join('')}
     ${game && !live ? '<div class="row"><button id="usegame" class="primary">Set up the clock for this game</button></div>' : ''}
     <p class="muted">${esc(SEASONS[CURRENT_SEASON].label)}. Tap a clause for its words.</p>`;
