@@ -11,8 +11,8 @@ export const GAMES = [
     venue: 'Strathewen Reserve, 160 Chadds Creek Rd, Strathewen', ground: 'Strathewen Reserve',
     fee: '$180 (not yet approved)',
     weather: {
-      asOf: 'Wed 7 Oct', icon: '⛅', summary: 'Light showers before 11 am (~1 mm), dry through play. Breezy', temp: '19–20°', rain: '18–31%', gusts: '32–36', uv: '7',
-      hours: [['12 pm', 19, 31, 36], ['1 pm', 19, 29, 36], ['2 pm', 19, 27, 35], ['3 pm', 20, 24, 34], ['4 pm', 20, 21, 33], ['5 pm', 19, 18, 32]],
+      asOf: 'Sat 10 Oct, 10:30 am', icon: '🌤️', summary: 'Morning drizzle cleared by 10 am, dry through play. Windy, gusts near 40 after lunch', temp: '18–19°', rain: '0–4%', gusts: '33–41', uv: '7',
+      hours: [['12 pm', 18, 4, 33], ['1 pm', 19, 2, 37], ['2 pm', 19, 0, 41], ['3 pm', 19, 0, 41], ['4 pm', 19, 0, 40], ['5 pm', 19, 0, 37]],
       bom: 'https://www.bom.gov.au/places/vic/strathewen/',
     },
     alerts: [
@@ -26,8 +26,8 @@ export const GAMES = [
     venue: 'Laurimar Town Park, Painted Hills Rd, Doreen', ground: 'Oval #2 East',
     fee: '$140 (not yet approved)',
     weather: {
-      asOf: 'Wed 7 Oct', icon: '☀️', summary: 'Clear and dry, warming, wind picking up late morning', temp: '14–20°', rain: '0–1%', gusts: '18–34', uv: '2→7',
-      hours: [['9 am', 14, 1, 18], ['10 am', 17, 0, 25], ['11 am', 18, 0, 30], ['12 pm', 19, 1, 33], ['1 pm', 20, 1, 34]],
+      asOf: 'Sat 10 Oct, 10:30 am', icon: '☀️', summary: 'Clear and dry, warming. Very windy from late morning, gusts near 50 by 1 pm', temp: '16–20°', rain: '0%', gusts: '24–49', uv: '2→7',
+      hours: [['9 am', 16, 0, 24], ['10 am', 18, 0, 32], ['11 am', 18, 0, 39], ['12 pm', 19, 0, 44], ['1 pm', 20, 0, 49]],
       bom: 'https://www.bom.gov.au/places/vic/doreen/',
     },
     alerts: [
