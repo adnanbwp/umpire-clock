@@ -4,22 +4,8 @@
 export const GAMES = [
   // 2026-10-03 Fiji v Lalor (Quick Shield R1) removed: abandoned by the NMCA Board for rain, by-law 3.23. No fee (run sheet §5).
   // 2026-10-04 Banyule v Olympic Fillies (women's Div 2 R1) removed: played, report approved 5 Oct.
+  // 2026-10-10 Strathewen v Fiji (Quick Shield R2) removed: played, Umpires Match Report submitted in OfficialsHQ 10 Oct.
   // Formats per Adnan, 2026-10-07: both one-day (PlayHQ agrees). Weather: Open-Meteo best-match at the PlayHQ ground coordinates.
-  {
-    date: '2026-10-10', format: 'oneday', grade: 'quick', gradeName: 'Jack Quick Shield', round: 2,
-    home: 'Strathewen Cougars 1st XI', away: 'Fiji Victorian 2nd XI',
-    venue: 'Strathewen Reserve, 160 Chadds Creek Rd, Strathewen', ground: 'Strathewen Reserve',
-    fee: '$180 (not yet approved)',
-    weather: {
-      asOf: 'Sat 10 Oct, 10:30 am', icon: '🌤️', summary: 'Morning drizzle cleared by 10 am, dry through play. Windy, gusts near 40 after lunch', temp: '18–19°', rain: '0–4%', gusts: '33–41', uv: '7',
-      hours: [['12 pm', 18, 4, 33], ['1 pm', 19, 2, 37], ['2 pm', 19, 0, 41], ['3 pm', 19, 0, 41], ['4 pm', 19, 0, 40], ['5 pm', 19, 0, 37]],
-      bom: 'https://www.bom.gov.au/places/vic/strathewen/',
-    },
-    alerts: [
-      { icon: '🧴', text: 'UV 7 from 1 pm: sunscreen and hat', level: 'info' },
-      { icon: '🗳️', text: 'Medal votes due 12 pm Sunday. You\'re at Doreen then, so do them Saturday night', level: 'info' },
-    ],
-  },
   {
     date: '2026-10-11', format: 'wod', grade: 'women', gradeName: 'Div 2 · Lenore Smith Shield', round: 2,
     home: 'Laurimar 1st XI', away: 'North Eltham Wanderers 2nd XI',
@@ -31,6 +17,7 @@ export const GAMES = [
       bom: 'https://www.bom.gov.au/places/vic/doreen/',
     },
     alerts: [
+      { icon: '🗳️', text: 'Saturday\'s medal votes are due 12 pm today, mid-game. Do them before you leave home', level: 'warn' },
       { icon: '👩', text: 'Women\'s one-day: retire at 50 in Div 2, not 35 as in T20 (5.15.11). 8-ball max over (5.15.8)', level: 'warn' },
       { icon: '🧍', text: 'Batting team supplies the square-leg umpire', level: 'info' },
       { icon: '🧴', text: 'UV 7 by 1 pm: sunscreen even though it starts cool', level: 'info' },
