@@ -138,10 +138,12 @@ export function formatCard(format, grade) {
   const after = [
     i('✍️', 'Sign both scorebooks', women ? '5.9.3' : '3.13.3'),
     i('🔒', 'Score dispute: impound books, to the GM that evening, give no opinion', women ? '5.3.4' : '3.5.4'),
-    i('🗳️', 'Medal votes in OfficialsHQ by 12 pm the next day', 'Reg 2.22.3 (2025-26; dropped from the 2026-27 regs, OfficialsHQ per Potts)'),
+    // ponytail: interim routes per Potts (5 and 10 Oct 2026); back to one OfficialsHQ line once votes are set up there.
+    women ? i('🗳️', '3-2-1 votes: email nmca.womenscricket@gmail.com (until OfficialsHQ votes work)', 'Potts 5 Oct 2026')
+      : SHIELD.has(grade) && i('🗳️', `Medal votes on the NMCA website form (northmetrocricket.com.au/match-centre/umpires) by 12 pm the day after the ${twoday ? 'match ends' : 'game'}`, 'Reg 2.22.3 (2025-26; dropped from the 2026-27 regs). Route: Potts 10 Oct 2026'),
     i('📋', 'Umpires Match Report in OfficialsHQ: facts only', 'Reg 10(ii)'),
     i('💵', 'Fee paid by the tea break', 'Reg 2.26.7 (2025-26; dropped from the 2026-27 regs)'),
-  ];
+  ].filter(Boolean);
 
   return {
     row, tiles: tiles.map(([icon, big, label, cite]) => ({ icon, big, label, cite })), cutoffs,
