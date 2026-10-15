@@ -88,6 +88,8 @@ export const QUOTES = {
   'By-law 3.15.1': 'If the innings of the team batting first has not been previously completed, it shall be compulsorily closed at the end of the scheduled overs (40/35), at which time a 20-minute break shall be taken.',
   'By-law 3.16.1.2': 'In the event of an innings terminating or inclement weather interruption within 30 minutes of the scheduled time the tea adjournment shall be taken with no allowance for the ten-minute interval between innings and no deduction of overs.',
   'By-law 3.16.1.3': 'Should a team be nine wickets down at the scheduled tea break, the tea break shall be deferred for a period of not more than 30 minutes or until the innings is terminated within this period.',
+  'By-law 3.16.9': 'In a two-day match where two innings may be played by each team, the side that bats first and leads by at least 100 runs shall have the option of requiring the opposition team to follow on after their first innings has been completed. (Laws Of Cricket Law 14 The Follow On 14.1.2).',
+  'Law 14.2': 'A captain shall notify the opposing captain and the umpires of their intention to enforce the follow-on. Once notified, the decision cannot be changed. (MCC Laws of Cricket)',
   'By-law 3.16.1.4': "If a day's play begins at 2.30 p.m. onwards, no tea adjournment shall be taken in that days' play.",
   'By-law 3.16.2.2.1': "If time is lost, play can be extended by a maximum of 30 minutes at the end of that day's play.",
   'By-law 3.16.2.2.2': 'If time lost exceeds 30 minutes, after allowing for the extended finishing time, then the scheduled overs are calculated based on the time remaining in the days play based on one over for every 3.5 minutes.',
@@ -138,7 +140,7 @@ export const QUOTES = {
 // Operative words for a cite key. Keys arrive bare ('3.15.2.1') or prefixed; DODC rows cite
 // 3.17.x, which the by-laws mirror from 3.15.x, so those fall through to the 3.15 wording.
 export function quoteFor(k) {
-  const key = k.startsWith('By-law ') || k.startsWith('Handbook') || k === 'Interpretation' || k === 'Setup' ? k : 'By-law ' + k;
+  const key = k.startsWith('By-law ') || k.startsWith('Handbook') || k === 'Interpretation' || k === 'Setup' || k.startsWith('Law ') ? k : 'By-law ' + k;
   if (QUOTES[key]) return QUOTES[key];
   if (key.startsWith('By-law 3.17.')) {
     const mirrored = QUOTES[key.replace('3.17.', '3.15.')];

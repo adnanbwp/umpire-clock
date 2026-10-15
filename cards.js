@@ -75,7 +75,8 @@ export function formatCard(format, grade) {
     i('✂️', `Side 1 closed at ${row.overs} overs. Side 2 gets the same legal balls`, '3.16.4, 3.16.5'),
     i('➕', `Side 1 out or declared on day 1: side 2 gets ${row.overs} overs + unused day-1 overs`, '3.16.6'),
     i('🆕', 'New ball: fielding captain\'s option at the start of the 2nd innings, and after the scheduled overs (80 Burland, 70 others)', '3.2.7, 3.2.8'),
-    i('↩️', 'Follow-on available with a lead of 100', '3.16.9'),
+    i('↩️', 'Follow-on: side 1 leads by 100 or more after side 2\'s first innings. Side 1 captain\'s option, never automatic', '3.16.9'),
+    i('🔒', 'Follow-on: captain tells both umpires and the other captain. Once told, it can\'t be changed. Check the lead with both scorers', 'Law 14.2'),
     i('⏰', 'Late start: team not in default may claim the lost time. Claims to umpires by tea', '3.16.7'),
   ] : [
     i('✂️', `Side 1 closed at ${row.overs} overs. Side 2 gets the same ${women ? '' : 'legal '}balls`, `${b}.1, ${b}.3`),
